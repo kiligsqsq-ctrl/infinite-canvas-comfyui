@@ -1,0 +1,17 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="canvas-loop" x1="8" y1="16" x2="58" y2="49" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#9B7BFF"/>
+      <stop offset="0.48" stop-color="#54D6FF"/>
+      <stop offset="1" stop-color="#FFB45C"/>
+    </linearGradient>
+    <radialGradient id="canvas-core" cx="0" cy="0" r="1" gradientTransform="translate(32 32) rotate(90) scale(8)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#8FE8FF"/>
+    </radialGradient>
+  </defs>
+  <path d="M9 32C9 21.5 19.5 15.8 27.8 23.9L41.1 40.2C48 48.4 57 43.1 57 32C57 20.9 47.8 15.8 39.8 24.1L22.8 41.7C15.8 48.7 9 42.7 9 32Z" stroke="url(#canvas-loop)" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="27" y="27" width="10" height="10" rx="3" fill="url(#canvas-core)"/>
+  <circle cx="9" cy="32" r="3" fill="#A98EFF"/>
+  <circle cx="57" cy="32" r="3" fill="#FFBF6D"/>
+</svg>
