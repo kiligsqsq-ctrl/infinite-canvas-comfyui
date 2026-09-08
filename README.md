@@ -23,7 +23,8 @@
 - 生成任务中心：画布右上角统一查看、定位、取消和清理等待中、运行中、已完成、失败或已取消的任务。
 - 参考自动排序：连接素材按画布中从上到下、同排从左到右自动编号；组装提示词中明确插入的引用顺序仍优先生效。
 - 素材重新关联：浏览器本地图片、视频或音频丢失后保留节点与连线，并可从画布右上角选择原文件恢复。
-- 一键更新：画布右上角可从本仓库 `main` 分支安全更新本地源码，不会强制覆盖本地修改。
+- 源码一键更新：画布右上角可从本仓库 `main` 分支安全更新本地源码，不会强制覆盖本地修改。
+- Windows 桌面版：GitHub Release 提供独立安装程序，并通过同一仓库接收后续版本更新。
 - 安全调用：已删除未实现的 AI 超分入口和任意自定义调用脚本，ComfyUI 工作流由固定调用器执行。
 - 本地保存：画布、素材和渠道配置默认保存在当前浏览器中。
 
@@ -33,14 +34,40 @@
 
 - 将 Claude Code CLI Adapter 升级为 Claude Agent SDK Adapter，并继续完善 Agent 工具队列。
 - 增加从网络检索安装 Skill、Skill 资源文件管理和可控的本地记忆功能。
+- 取得可信证书后为 Windows 安装包增加代码签名，并在 Windows 发布链路稳定后评估 macOS 与 Linux 版本。
+- 等待 `@ant-design/pro-components` 3.x 提供兼容的上游修复后，移除其语法高亮依赖链剩余的中等级安全告警；当前不强制降级到不兼容的 2.x。
 
 ## 项目说明
 
 本项目由 `kiligsqsq-ctrl` 独立维护，源码、版本、发行包和自动更新均以本仓库为准。项目依法保留所使用 MIT 开源代码的版权与许可声明，具体内容见 [LICENSE](LICENSE)。
 
-## 使用前准备
+## Windows 桌面版
 
-开始之前，请确认电脑中已经具备：
+普通 Windows 用户可以在 [GitHub Releases](https://github.com/kiligsqsq-ctrl/infinite-canvas-comfyui/releases) 下载最新版本中以 `.exe` 结尾的安装程序。安装后从开始菜单启动即可，不需要另外安装 Git、Bun 或 Node.js。桌面包已包含画布前端和 Canvas Agent；进入右侧 Agent 面板可点击「启动内置 Agent」。ComfyUI 和模型文件仍由用户自行安装、启动并在画布中填写地址。
+
+应用会根据同一版本发布中的 `latest.yml` 和 `.blockmap` 检查更新。收到新版本提示后按应用提示下载并重启，画布和配置数据会继续保存在本机。桌面版连接本机或局域网 ComfyUI 时会使用只允许私有地址的内置代理，因此无需给 ComfyUI 增加浏览器 CORS 参数；源码安装仍按下文配置 CORS，并使用 Git 更新通道。
+
+`v0.0.1` 暂未配置商业代码签名证书，Windows SmartScreen 可能显示「未知发布者」。请只从本仓库 Releases 下载，并在核对来源后继续安装。
+
+维护者发布版本时，先整理 `CHANGELOG.md`，然后使用版本脚本。当前版本从根目录 `VERSION` 读取，版本依次为 `0.0.1` 至 `0.0.5`、`0.1.0` 至 `0.1.5`、`0.2.0`，以此类推：
+
+```powershell
+node scripts/version.mjs next
+node scripts/version.mjs bump
+$releaseVersion = Get-Content VERSION
+node scripts/version.mjs check "v$releaseVersion"
+git add -A
+git commit -m "release: v$releaseVersion"
+git tag "v$releaseVersion"
+git push origin main
+git push origin "v$releaseVersion"
+```
+
+首次发布已有的 `0.0.1` 时跳过 `bump`。推送格式严格为 `v<主版本>.<次版本>.<补丁版本>` 的 tag 后，Windows 工作流会校验根版本、桌面端、Web 与 Canvas Agent 的版本，并确认 tag 相对最近的合法版本严格递增；随后从干净检出构建桌面包，把 `.exe`、`.blockmap` 和 `latest.yml` 上传到对应的 GitHub Release。本地发版流程不需要手工构建安装包。
+
+## 源码运行前准备
+
+本节及后续命令用于源码开发方式。安装 Windows 桌面版的用户不需要 Git 或 Bun，可以直接跳到「三、启动 ComfyUI」。使用源码方式前，请确认电脑中已经具备：
 
 1. Git。
 2. Bun。
@@ -49,7 +76,7 @@
 
 本仓库只包含画布和调用功能，不包含 MiniMax-H3 或其他模型文件。画布不读取 ComfyUI 的安装目录，也不依赖任何特定启动器。
 
-## 一、创建并下载仓库
+## 一、源码方式：下载仓库
 
 ```bash
 git clone https://github.com/kiligsqsq-ctrl/infinite-canvas-comfyui.git
@@ -59,7 +86,7 @@ cd web
 
 也可以在 GitHub 仓库页面点击 `Code` → `Download ZIP`，解压后进入其中的 `web` 文件夹。
 
-## 二、安装并启动无限画布
+## 二、源码方式：安装并启动无限画布
 
 第一次运行时，在 `web` 文件夹中执行：
 
@@ -102,11 +129,11 @@ python main.py --enable-cors-header http://localhost:3000
 http://127.0.0.1:8188
 ```
 
-`8188` 只是 ComfyUI 常见的默认端口，不是强制端口。如果你的 ComfyUI 使用其他端口或局域网地址，后面的接口地址填写实际地址即可。无论使用哪种版本，都需要允许来自 `http://localhost:3000` 的跨域访问。
+`8188` 只是 ComfyUI 常见的默认端口，不是强制端口。如果你的 ComfyUI 使用其他端口或局域网地址，后面的接口地址填写实际地址即可。使用浏览器源码版时需要允许来自 `http://localhost:3000` 的跨域访问；Windows 桌面版不需要这项启动参数。
 
 ## 四、在无限画布中配置 ComfyUI
 
-打开 `http://localhost:3000` 后：
+源码方式打开 `http://localhost:3000`；Windows 桌面版从开始菜单启动。进入画布后：
 
 1. 点击右上角“配置”。
 2. 打开“渠道”页面。
@@ -127,9 +154,9 @@ Ollama、LM Studio 和其他本地 OpenAI 兼容服务也可以在同一区域�
 
 ## 五、一键更新
 
-页面右上角的云下载按钮用于一键更新画布。它固定从 `kiligsqsq-ctrl/infinite-canvas-comfyui` 仓库的 `main` 分支获取最新版，并在完成后自动刷新网页。
+页面右上角的云下载按钮用于一键更新画布。源码开发模式会固定从 `kiligsqsq-ctrl/infinite-canvas-comfyui` 仓库的 `main` 分支获取最新版，并在完成后自动刷新网页；Windows 桌面版则检查 GitHub Releases，下载完成后提示重启安装。
 
-需要同时满足以下条件：
+下面三个条件只适用于源码方式的一键更新：
 
 - 使用 `git clone` 安装，而不是下载 ZIP。
 - 当前位于 `main` 分支。
@@ -158,7 +185,7 @@ Ollama、LM Studio 和其他本地 OpenAI 兼容服务也可以在同一区域�
 
 - ComfyUI 已经启动。
 - 浏览器能够打开 `http://127.0.0.1:8188`。
-- ComfyUI 启动参数中已经加入 `--enable-cors-header http://localhost:3000`。
+- 使用浏览器源码版时，ComfyUI 启动参数中已经加入 `--enable-cors-header http://localhost:3000`；Windows 桌面版无需添加。
 
 官方版、源码版和整合包使用的是同一套连接逻辑。画布只访问 `/system_stats`、`/object_info`、`/upload/image`、`/prompt`、`/history`、`/view` 和取消任务等标准接口，不识别也不要求某个整合包。
 

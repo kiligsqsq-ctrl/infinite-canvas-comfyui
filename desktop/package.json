@@ -1,0 +1,99 @@
+{
+  "name": "infinite-canvas-comfyui-desktop",
+  "version": "0.0.1",
+  "private": true,
+  "description": "无限画布 Windows 桌面客户端",
+  "author": "kiligsqsq-ctrl",
+  "license": "MIT",
+  "main": "main.cjs",
+  "scripts": {
+    "build:icon": "node scripts/create-icon.mjs",
+    "build:web": "npm ci --legacy-peer-deps --prefix ../web && npm run build --prefix ../web",
+    "build:agent": "npm ci --prefix ../canvas-agent && npm run bundle:desktop --prefix ../canvas-agent",
+    "prepare:resources": "npm run build:icon && npm run build:web && npm run build:agent",
+    "start": "npm run prepare:resources && electron .",
+    "test": "node --test test/*.test.cjs",
+    "pack": "npm run prepare:resources && electron-builder --dir --win --x64",
+    "dist": "npm run prepare:resources && electron-builder --win nsis --x64"
+  },
+  "dependencies": {
+    "electron-log": "^5.4.4",
+    "electron-updater": "^6.8.9"
+  },
+  "devDependencies": {
+    "electron": "^44.2.0",
+    "electron-builder": "^26.15.3",
+    "png-to-ico": "^3.0.1",
+    "sharp": "^0.34.4"
+  },
+  "build": {
+    "appId": "com.kiligsqsq.infinitecanvas",
+    "productName": "无限画布",
+    "copyright": "Copyright © 2026 kiligsqsq-ctrl",
+    "artifactName": "Infinite-Canvas-Setup-${version}.${ext}",
+    "asar": true,
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.cjs",
+      "preload.cjs",
+      "agent.cjs",
+      "local-network.cjs",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../web/dist",
+        "to": "web"
+      },
+      {
+        "from": "resources/agent",
+        "to": "agent",
+        "filter": [
+          "**/*",
+          "!node_modules/**/*"
+        ]
+      },
+      {
+        "from": "resources/agent/node_modules",
+        "to": "agent/node_modules",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "../LICENSE",
+        "to": "LICENSE.txt"
+      }
+    ],
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "shortcutName": "无限画布",
+      "deleteAppDataOnUninstall": false
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "kiligsqsq-ctrl",
+        "repo": "infinite-canvas-comfyui",
+        "releaseType": "release"
+      }
+    ]
+  }
+}

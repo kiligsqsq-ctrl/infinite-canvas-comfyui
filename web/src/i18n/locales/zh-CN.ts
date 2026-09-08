@@ -343,6 +343,15 @@ export default {
         updateFromGitHub: "从我的 GitHub 仓库更新到最新版",
         updateCurrent: "当前已经是仓库 main 分支最新版",
         updateSuccess: "更新完成，正在重新加载网页",
+        desktopUpdate: {
+            action: "检查桌面应用更新",
+            checking: "正在检查新版本…",
+            available: "发现新版本 {{version}}，正在下载…",
+            downloading: "正在下载新版本：{{percent}}%",
+            downloaded: "新版本 {{version}} 已下载，请按弹窗提示重启安装。",
+            current: "当前已经是最新桌面版本",
+            failed: "桌面应用更新失败，请稍后重试。",
+        },
         updateErrors: {
             dirty: "检测到本地源码有未保存的修改。请先提交或处理这些修改，再点击更新。",
             noUpstream: "一键更新只能在 main 分支使用。",
@@ -375,6 +384,7 @@ export default {
         changelogFailed: "更新日志读取失败",
         updated: "已获取最新版本信息",
         updateFailed: "获取最新版本信息失败",
+        desktopCheckStarted: "已开始检查桌面应用更新",
         types: { added: "新增", fixed: "修复", changed: "调整", optimized: "优化", docs: "文档" },
     },
     config: {
@@ -626,9 +636,10 @@ export default {
     },
     agent: {
         status: { failed: "连接失败", connected: "已连接", connecting: "连接中", disconnected: "未连接" },
+        desktop: { stopFailed: "内置 Agent 未能停止；退出桌面应用后会自动关闭。" },
         state: { ready: "就绪", connectionRequired: "请填写 Local URL 和 Connect token", invalidUrl: "Local URL 格式不正确", offline: "离线", skillReadFailed: "读取 Skill 失败", skillParseFailed: "Skill 解析失败", requestFailed: "本地 Agent 请求失败" },
         siteTools: { canvasList: "画布列表", generationStatus: "生成任务状态", imageConfig: "生图配置", imageGenerate: "生图工作台生成", videoConfig: "视频配置", videoGenerate: "视频创作台生成", promptSearch: "搜索提示词", assetList: "资产列表", assetAdd: "添加资产", unknownTool: "未知工具：{{name}}", canvasLoading: "画布还在加载中，请稍后重试", canvasHint: "用 site_navigate 跳转 /canvas/{id} 打开对应画布", assetsLoading: "资产还在加载中，请稍后重试", assetTitleRequired: "请提供资产标题 title", textContentRequired: "kind=text 时需要提供 content 文本内容", imageUrlRequired: "kind=image 时需要提供 imageUrl（图片地址或 dataURL）", imageReadFailed: "无法读取该图片地址，请改用 dataURL 或可跨域访问的图片链接", assetKindUnsupported: "assets_add 仅支持 kind=text 或 kind=image", imageGenerationStarted: "已跳转生图工作台并触发生成，可用 generation_get_status 查询任务", imageConfigApplied: "已跳转生图工作台并填入参数，未触发生成", videoGenerationStarted: "已跳转视频创作台并触发生成，可用 generation_get_status 查询任务", videoConfigApplied: "已跳转视频创作台并填入参数，未触发生成" },
-        connect: { pluginTitle: "方式一：在 Codex 中使用插件", pluginText: "在 Codex app 安装本仓库的 Infinite Canvas 插件后，通过插件启动画布。", directTitle: "方式二：从源码运行 Agent", directText: "在仓库根目录运行下面命令，再回到网页里连接或手动填入 Local URL 和 Connect token。", commandCopied: "命令已复制", pluginReminder: "Codex 插件提醒", pluginReminderText: "只有安装 Codex 插件或手动添加 MCP 后，工具列表才会进入 Codex 上下文并增加 token 消耗；单独启动本地 Agent 不会安装 MCP。", removePlugin: "移除插件", removeMcp: "移除手动 MCP", copyCommand: "复制命令", title: "连接本地 Agent", description: "按使用场景选择一种连接方式。", webConnection: "网页连接", autoDiscover: "默认自动读取 Local URL 和 Connect token，失败时再手动填写。", disconnect: "断开", connect: "连接", localAddress: "本地地址", urlPlaceholder: "例如 http://127.0.0.1:17371", token: "连接 Token", tokenPlaceholder: "自动发现，或手动填入 Connect token" },
+        connect: { desktopTitle: "桌面版内置 Agent", desktopDescription: "无需打开命令行；桌面应用会启动随软件附带的 Agent，并自动填写地址和 Token 后连接。", desktopStart: "启动内置 Agent", desktopStarting: "正在启动", desktopConnected: "已经连接", desktopStarted: "内置 Agent 已启动，正在连接", desktopFailed: "内置 Agent 启动失败", desktopInvalidResponse: "内置 Agent 返回了无效的连接信息", pluginTitle: "方式一：在 Codex 中使用插件", pluginText: "在 Codex app 安装本仓库的 Infinite Canvas 插件后，通过插件启动画布。", directTitle: "方式二：从源码运行 Agent", directText: "在仓库根目录运行下面命令，再回到网页里连接或手动填入 Local URL 和 Connect token。", commandCopied: "命令已复制", pluginReminder: "Codex 插件提醒", pluginReminderText: "只有安装 Codex 插件或手动添加 MCP 后，工具列表才会进入 Codex 上下文并增加 token 消耗；单独启动本地 Agent 不会安装 MCP。", removePlugin: "移除插件", removeMcp: "移除手动 MCP", copyCommand: "复制命令", title: "连接本地 Agent", description: "按使用场景选择一种连接方式。", webConnection: "网页连接", autoDiscover: "默认自动读取 Local URL 和 Connect token，失败时再手动填写。", disconnect: "断开", connect: "连接", localAddress: "本地地址", urlPlaceholder: "例如 http://127.0.0.1:17371", token: "连接 Token", tokenPlaceholder: "自动发现，或手动填入 Connect token" },
         history: { workspace: "工作空间", defaultWorkspace: "默认画布目录", selected: "已选 {{count}} 条", count: "{{count}} 条历史", empty: "暂无历史", deleteCount: "删除 {{count}} 条", refresh: "刷新", newThread: "新对话", selectThread: "选择{{name}}", untitled: "未命名对话", current: "当前", noWorkspaceThreads: "当前工作空间还没有对话记录", connectHint: "连接本地 Agent 后显示历史记录" },
         skills: { selectLocal: "选择本地 Skill", search: "搜索 Skill", loading: "正在读取 Skill…", noMatch: "没有匹配的已启用 Skill", none: "还没有可用的 Skill", select: "选择 Skill", connectHint: "连接 Agent 后使用 Skill" },
         skillManager: {

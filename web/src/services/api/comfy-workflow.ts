@@ -1,5 +1,6 @@
 import axios from "axios";
 
+import { isDesktopRuntime } from "@/lib/desktop-runtime";
 import { getComfyWorkflowPreset } from "@/services/comfy-workflow-storage";
 import type { AiConfig, ModelCapability } from "@/stores/use-config-store";
 import type { ComfyInputBinding, ComfyWorkflow, ComfyWorkflowPreset } from "@/types/comfy-workflow";
@@ -54,7 +55,8 @@ export async function runComfyWorkflow({ workflowId, capability, config, prompt,
     try {
         await axios.get(`${comfyUrl}/system_stats`, { headers, signal });
     } catch (error) {
-        throw new Error(`无法连接 ComfyUI（${comfyUrl}）。请确认服务已启动并允许跨域访问。${errorDetail(error)}`);
+        const hint = isDesktopRuntime() ? "请确认服务已启动且地址可访问。" : "请确认服务已启动并允许跨域访问。";
+        throw new Error(`无法连接 ComfyUI（${comfyUrl}）。${hint}${errorDetail(error)}`);
     }
 
     setBinding(workflow, mapping.prompt, prompt);

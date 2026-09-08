@@ -14,4 +14,6 @@ web/dist
 web/public/plugins
 plugins/canvas/*/dist
 plugins/canvas/*/node_modules
-web/public/plugins
+desktop/build/
+desktop/release/
+desktop/resources/

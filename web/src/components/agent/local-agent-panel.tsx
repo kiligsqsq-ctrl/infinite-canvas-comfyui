@@ -182,6 +182,7 @@ export function LocalAgentPanel({ embedded, headless, autoConnect }: { embedded?
     const attachmentUrlsRef = useRef(new Set<string>());
     const clientIdRef = useRef("");
     const [clientReady, setClientReady] = useState(false);
+    const [desktopAgentStarting, setDesktopAgentStarting] = useState(false);
     const loadThreadsSequenceRef = useRef(0);
     const threadMessagesRef = useRef(new Map<string, AgentChatItem[]>());
     const authoritativeHistoryTurnsRef = useRef(new Set<string>());
@@ -902,6 +903,15 @@ export function LocalAgentPanel({ embedded, headless, autoConnect }: { embedded?
 
     const toggleAgentConnection = async ({ silent = false }: { silent?: boolean } = {}) => {
         if (enabled) {
+            const desktop = window.infiniteCanvasDesktop;
+            if (desktop?.getAgentStatus && desktop.stopAgent) {
+                try {
+                    const status = await desktop.getAgentStatus();
+                    if (status.running && status.url?.trim().replace(/\/$/, "") === endpoint) await desktop.stopAgent();
+                } catch {
+                    message.warning(t("agent.desktop.stopFailed"));
+                }
+            }
             clearAgentSession({ enabled: false, connected: false, activity: rt("offline"), connectError: "" });
             return;
         }
@@ -939,6 +949,28 @@ export function LocalAgentPanel({ embedded, headless, autoConnect }: { embedded?
         }
         errorLoggedRef.current = false;
         setAgentState({ url: nextEndpoint, token: nextToken, enabled: true, connected: false, silentConnect: silent, activity: rt("connecting"), connectError: "", activeTab: "setup" });
+    };
+
+    const startDesktopAgent = async () => {
+        const desktop = window.infiniteCanvasDesktop;
+        if (!desktop || desktopAgentStarting || connected) return;
+        setDesktopAgentStarting(true);
+        try {
+            const connection = await desktop.startAgent();
+            const nextEndpoint = connection.url.trim().replace(/\/$/, "");
+            const nextToken = connection.token.trim();
+            const parsed = new URL(nextEndpoint);
+            if ((parsed.protocol !== "http:" && parsed.protocol !== "https:") || !nextToken) throw new Error(t("agent.connect.desktopInvalidResponse"));
+            errorLoggedRef.current = false;
+            setAgentState({ url: nextEndpoint, token: nextToken, enabled: true, connected: false, silentConnect: false, activity: rt("connecting"), connectError: "", activeTab: "setup" });
+            message.success(t("agent.connect.desktopStarted"));
+        } catch (error) {
+            const text = error instanceof Error && error.message ? error.message : t("agent.connect.desktopFailed");
+            setAgentState({ connectError: text });
+            message.error(text);
+        } finally {
+            setDesktopAgentStarting(false);
+        }
     };
 
     useEffect(() => {
@@ -1340,6 +1372,8 @@ export function LocalAgentPanel({ embedded, headless, autoConnect }: { embedded?
                     connected={connected}
                     activity={activity}
                     connectError={connectError}
+                    desktopAgentStarting={desktopAgentStarting}
+                    onStartDesktopAgent={window.infiniteCanvasDesktop?.isDesktop ? () => void startDesktopAgent() : undefined}
                     onUrlChange={(url) => setAgentState({ url, connectError: "" })}
                     onTokenChange={(token) => setAgentState({ token, connectError: "" })}
                     onToggleEnabled={toggleAgentConnection}

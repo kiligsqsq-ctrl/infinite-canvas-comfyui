@@ -1,0 +1,67 @@
+name: Desktop release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: desktop-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            desktop/package-lock.json
+            web/package-lock.json
+            canvas-agent/package-lock.json
+
+      - name: Validate release version
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: node scripts/version.mjs check $env:RELEASE_TAG
+
+      - name: Install desktop dependencies
+        working-directory: desktop
+        run: npm ci
+
+      - name: Build web, Canvas Agent, and Windows installer
+        working-directory: desktop
+        run: npm run dist
+
+      - name: Verify release artifacts
+        shell: pwsh
+        run: |
+          if (-not (Test-Path -LiteralPath "desktop/release/latest.yml")) {
+            throw "desktop/release/latest.yml was not generated"
+          }
+          if (-not (Get-ChildItem -Path "desktop/release/*.exe" -File -ErrorAction SilentlyContinue)) {
+            throw "No Windows installer was generated"
+          }
+          if (-not (Get-ChildItem -Path "desktop/release/*.blockmap" -File -ErrorAction SilentlyContinue)) {
+            throw "No updater blockmap was generated"
+          }
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Infinite Canvas ${{ github.ref_name }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: |
+            desktop/release/*.exe
+            desktop/release/*.blockmap
+            desktop/release/latest.yml

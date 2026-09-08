@@ -343,6 +343,15 @@ export default {
         updateFromGitHub: "Update from my GitHub repository",
         updateCurrent: "This installation already matches the repository's main branch",
         updateSuccess: "Update complete. Reloading the page",
+        desktopUpdate: {
+            action: "Check for desktop app updates",
+            checking: "Checking for a new version…",
+            available: "Version {{version}} is available and is downloading…",
+            downloading: "Downloading the new version: {{percent}}%",
+            downloaded: "Version {{version}} is ready. Follow the prompt to restart and install it.",
+            current: "The desktop app is up to date",
+            failed: "Desktop app update failed. Try again later.",
+        },
         updateErrors: {
             dirty: "The local source has uncommitted changes. Commit or handle them before updating.",
             noUpstream: "One-click update is only available on the main branch.",
@@ -375,6 +384,7 @@ export default {
         changelogFailed: "Failed to read changelog",
         updated: "Latest version information loaded",
         updateFailed: "Failed to load the latest version information",
+        desktopCheckStarted: "Desktop update check started",
         types: { added: "Added", fixed: "Fixed", changed: "Changed", optimized: "Optimized", docs: "Docs" },
     },
     config: {
@@ -626,9 +636,10 @@ export default {
     },
     agent: {
         status: { failed: "Connection failed", connected: "Connected", connecting: "Connecting", disconnected: "Disconnected" },
+        desktop: { stopFailed: "The bundled Agent could not be stopped; it will close when the desktop app exits." },
         state: { ready: "Ready", connectionRequired: "Enter the Local URL and Connect token", invalidUrl: "The Local URL is invalid", offline: "Offline", skillReadFailed: "Failed to read Skill", skillParseFailed: "Failed to parse Skill", requestFailed: "Local Agent request failed" },
         siteTools: { canvasList: "Canvas list", generationStatus: "Generation task status", imageConfig: "Image configuration", imageGenerate: "Generate in Image Studio", videoConfig: "Video configuration", videoGenerate: "Generate in Video Studio", promptSearch: "Search prompts", assetList: "Asset list", assetAdd: "Add asset", unknownTool: "Unknown tool: {{name}}", canvasLoading: "The canvas is still loading. Try again shortly.", canvasHint: "Use site_navigate to open /canvas/{id}", assetsLoading: "Assets are still loading. Try again shortly.", assetTitleRequired: "Provide the asset title", textContentRequired: "content is required when kind=text", imageUrlRequired: "imageUrl is required when kind=image", imageReadFailed: "Could not read the image. Use a data URL or a cross-origin accessible image URL.", assetKindUnsupported: "assets_add supports only kind=text or kind=image", imageGenerationStarted: "Opened Image Studio and started generation. Use generation_get_status to query the task.", imageConfigApplied: "Opened Image Studio and applied the parameters without starting generation.", videoGenerationStarted: "Opened Video Studio and started generation. Use generation_get_status to query the task.", videoConfigApplied: "Opened Video Studio and applied the parameters without starting generation." },
-        connect: { pluginTitle: "Option 1: Use the Codex plugin", pluginText: "Install the Infinite Canvas plugin from this repository in the Codex app and launch the canvas through it.", directTitle: "Option 2: Run the Agent from source", directText: "Run the command below from the repository root, then return here to connect or enter the Local URL and Connect token manually.", commandCopied: "Command copied", pluginReminder: "Codex plugin note", pluginReminderText: "The tool list enters the Codex context and consumes additional tokens only after installing the Codex plugin or adding MCP manually. Starting the local Agent alone does not install MCP.", removePlugin: "Remove plugin", removeMcp: "Remove manual MCP", copyCommand: "Copy command", title: "Connect local Agent", description: "Choose the connection method that fits your workflow.", webConnection: "Web connection", autoDiscover: "The Local URL and Connect token are discovered automatically by default. Enter them manually only if discovery fails.", disconnect: "Disconnect", connect: "Connect", localAddress: "Local address", urlPlaceholder: "For example http://127.0.0.1:17371", token: "Connection token", tokenPlaceholder: "Discover automatically or enter the Connect token" },
+        connect: { desktopTitle: "Bundled desktop Agent", desktopDescription: "No terminal is needed. The desktop app starts its bundled Agent, fills in the address and token, and connects automatically.", desktopStart: "Start bundled Agent", desktopStarting: "Starting", desktopConnected: "Connected", desktopStarted: "The bundled Agent has started and is connecting", desktopFailed: "Failed to start the bundled Agent", desktopInvalidResponse: "The bundled Agent returned invalid connection details", pluginTitle: "Option 1: Use the Codex plugin", pluginText: "Install the Infinite Canvas plugin from this repository in the Codex app and launch the canvas through it.", directTitle: "Option 2: Run the Agent from source", directText: "Run the command below from the repository root, then return here to connect or enter the Local URL and Connect token manually.", commandCopied: "Command copied", pluginReminder: "Codex plugin note", pluginReminderText: "The tool list enters the Codex context and consumes additional tokens only after installing the Codex plugin or adding MCP manually. Starting the local Agent alone does not install MCP.", removePlugin: "Remove plugin", removeMcp: "Remove manual MCP", copyCommand: "Copy command", title: "Connect local Agent", description: "Choose the connection method that fits your workflow.", webConnection: "Web connection", autoDiscover: "The Local URL and Connect token are discovered automatically by default. Enter them manually only if discovery fails.", disconnect: "Disconnect", connect: "Connect", localAddress: "Local address", urlPlaceholder: "For example http://127.0.0.1:17371", token: "Connection token", tokenPlaceholder: "Discover automatically or enter the Connect token" },
         history: { workspace: "Workspace", defaultWorkspace: "Default canvas directory", selected: "{{count}} selected", count: "{{count}} conversations", empty: "No history", deleteCount: "Delete {{count}}", refresh: "Refresh", newThread: "New chat", selectThread: "Select {{name}}", untitled: "Untitled conversation", current: "Current", noWorkspaceThreads: "No conversations in this workspace yet", connectHint: "Connect the local Agent to view conversation history" },
         skills: { selectLocal: "Select local Skill", search: "Search Skills", loading: "Loading Skills…", noMatch: "No matching enabled Skills", none: "No Skills available", select: "Select Skill", connectHint: "Connect the Agent to use Skills" },
         skillManager: {

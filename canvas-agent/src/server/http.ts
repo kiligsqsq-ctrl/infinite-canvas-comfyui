@@ -17,7 +17,7 @@ import { SkillStore, SkillStoreError } from "../skills/store.js";
 /** 启动仅监听本机的 Canvas Agent HTTP 服务。 */
 export function startHttpServer() {
     const config = loadConfig(true);
-    const port = Number(process.env.PORT) || Number(new URL(config.url).port) || DEFAULT_PORT;
+    const port = process.env.PORT === "0" ? 0 : Number(process.env.PORT) || Number(new URL(config.url).port) || DEFAULT_PORT;
     config.url = `http://127.0.0.1:${port}`;
     saveConfig(config);
 
@@ -431,11 +431,17 @@ export function startHttpServer() {
         res.status(500).json({ ok: false, error: error.message });
     });
 
-    app.listen(port, "127.0.0.1", () => {
+    const server = app.listen(port, "127.0.0.1", () => {
+        const address = server.address();
+        if (address && typeof address !== "string") {
+            config.url = `http://127.0.0.1:${address.port}`;
+            saveConfig(config);
+        }
+        process.send?.({ type: "ready", url: config.url });
         console.log("Infinite Canvas Agent");
         checkVersions();
         console.log(`Local URL: ${config.url}`);
-        console.log(`Connect token: ${config.token}`);
+        if (process.env.CANVAS_AGENT_BUNDLED !== "1") console.log(`Connect token: ${config.token}`);
         console.log("Codex MCP is not installed by this command.");
         console.log("Optional MCP add: build canvas-agent, then register its dist/index.js mcp command in Codex.");
         console.log("Remove manually added MCP: codex mcp remove infinite-canvas");
@@ -451,6 +457,7 @@ export function startHttpServer() {
             }).finally(() => session.endCodexMutation()).catch(() => undefined);
         }
     });
+    return server;
 }
 
 /** 将异步 Express 路由异常交给统一错误处理中间件。 */

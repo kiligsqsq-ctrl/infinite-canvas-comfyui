@@ -1,7 +1,7 @@
 import { Fragment } from "react";
 import { App, Button, Input, Tooltip } from "antd";
 import copyToClipboard from "copy-to-clipboard";
-import { Copy, KeyRound, Link2, PlugZap } from "lucide-react";
+import { Bot, Copy, KeyRound, Link2, PlugZap } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { canvasThemes } from "@/lib/canvas-theme";
@@ -17,6 +17,8 @@ export function AgentConnectView({
     connected,
     activity,
     connectError,
+    desktopAgentStarting,
+    onStartDesktopAgent,
     onUrlChange,
     onTokenChange,
     onToggleEnabled,
@@ -28,6 +30,8 @@ export function AgentConnectView({
     connected: boolean;
     activity: string;
     connectError: string;
+    desktopAgentStarting?: boolean;
+    onStartDesktopAgent?: () => void;
     onUrlChange: (value: string) => void;
     onTokenChange: (value: string) => void;
     onToggleEnabled: () => void;
@@ -74,6 +78,19 @@ export function AgentConnectView({
                         {t("agent.connect.description")}
                     </div>
                 </div>
+                {onStartDesktopAgent ? (
+                    <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3" style={{ borderColor: theme.node.stroke }}>
+                        <div className="min-w-0 flex-1">
+                            <div className="text-sm font-medium leading-5">{t("agent.connect.desktopTitle")}</div>
+                            <div className="mt-1 text-xs leading-5" style={{ color: theme.node.muted }}>
+                                {t("agent.connect.desktopDescription")}
+                            </div>
+                        </div>
+                        <Button type="primary" className="!h-8 !px-3" icon={<Bot className="size-4" />} loading={desktopAgentStarting} disabled={connected} onClick={onStartDesktopAgent}>
+                            {t(connected ? "agent.connect.desktopConnected" : desktopAgentStarting ? "agent.connect.desktopStarting" : "agent.connect.desktopStart")}
+                        </Button>
+                    </div>
+                ) : null}
                 <div className="space-y-2">
                     {steps.map((step, index) => {
                         const command = "command" in step ? step.command : "";

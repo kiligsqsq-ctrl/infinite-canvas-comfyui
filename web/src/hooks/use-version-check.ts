@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { App } from "antd";
 import { useTranslation } from "react-i18next";
 import { APP_VERSION } from "@/constant/env";
+import { isDesktopRuntime } from "@/lib/desktop-runtime";
 import { parseChangelog, type ReleaseInfo } from "@/lib/release";
 
 const latestVersionUrl = "https://raw.githubusercontent.com/kiligsqsq-ctrl/infinite-canvas-comfyui/main/VERSION";
@@ -35,6 +36,7 @@ export function useVersionCheck() {
     const hasNewVersion = isNewerVersion(latestVersion, currentVersion);
 
     const checkLatestVersion = useCallback(async () => {
+        if (isDesktopRuntime()) return true;
         try {
             const response = await fetch(latestVersionUrl);
             if (!response.ok) return false;
@@ -50,6 +52,15 @@ export function useVersionCheck() {
         async (showMessage = false) => {
             setChecking(true);
             try {
+                if (isDesktopRuntime()) {
+                    setReleases(localReleases);
+                    if (!showMessage) return true;
+                    const event = await window.infiniteCanvasDesktop!.checkForUpdates();
+                    if (event?.version) setLatestVersion(event.version);
+                    if (event?.status === "not-available") message.info(t("topNav.desktopUpdate.current"));
+                    else message.info(t("version.desktopCheckStarted"));
+                    return true;
+                }
                 const [versionResponse, changelogResponse] = await Promise.all([fetch(latestVersionUrl), fetch(latestChangelogUrl)]);
                 if (!versionResponse.ok) throw new Error(t("version.readFailed"));
                 if (!changelogResponse.ok) throw new Error(t("version.changelogFailed"));
@@ -71,6 +82,12 @@ export function useVersionCheck() {
     );
 
     useEffect(() => {
+        if (isDesktopRuntime()) {
+            const unsubscribe = window.infiniteCanvasDesktop!.onUpdateStatus((event) => {
+                if (event.version && (event.status === "available" || event.status === "downloading" || event.status === "downloaded")) setLatestVersion(event.version);
+            });
+            return typeof unsubscribe === "function" ? unsubscribe : undefined;
+        }
         void checkLatestVersion();
     }, [checkLatestVersion]);
 

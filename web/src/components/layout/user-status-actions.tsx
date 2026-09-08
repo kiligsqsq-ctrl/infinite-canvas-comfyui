@@ -1,13 +1,14 @@
 import type { CSSProperties } from "react";
 import { App, Tooltip } from "antd";
 import { CloudDownload, Keyboard, Puzzle, Settings2 } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 import { changeAppLocale, type AppLocale } from "@/i18n";
 import { canvasThemes } from "@/lib/canvas-theme";
-import { LocalRepositoryUpdateError, updateLocalRepository } from "@/services/api/local-repository-update";
+import { isDesktopRuntime } from "@/lib/desktop-runtime";
+import { LocalRepositoryUpdateError, subscribeToDesktopUpdateStatus, updateLocalRepository } from "@/services/api/local-repository-update";
 import { useConfigStore } from "@/stores/use-config-store";
 import { useThemeStore } from "@/stores/use-theme-store";
 
@@ -32,11 +33,30 @@ export function UserStatusActions({ showConfig = true, variant = "default", onOp
     const nextLocale = locale === "zh-CN" ? "en-US" : "zh-CN";
     const languageLabel = t("topNav.switchLanguage", { language: t(nextLocale === "zh-CN" ? "locale.zhCN" : "locale.enUS") });
 
+    const showDesktopUpdateStatus = useCallback((event: DesktopUpdateEvent) => {
+        const key = "desktop-app-update";
+        if (event.status === "checking") message.open({ key, type: "loading", duration: 0, content: t("topNav.desktopUpdate.checking") });
+        else if (event.status === "available") message.open({ key, type: "loading", duration: 0, content: t("topNav.desktopUpdate.available", { version: event.version || "" }) });
+        else if (event.status === "downloading") message.open({ key, type: "loading", duration: 0, content: t("topNav.desktopUpdate.downloading", { percent: Math.round(event.percent || 0) }) });
+        else if (event.status === "downloaded") message.success({ key, content: t("topNav.desktopUpdate.downloaded", { version: event.version || "" }), duration: 5 });
+        else if (event.status === "not-available") message.info({ key, content: t("topNav.desktopUpdate.current"), duration: 3 });
+        else message.error({ key, content: event.message || t("topNav.desktopUpdate.failed"), duration: 5 });
+    }, [message, t]);
+
+    useEffect(() => {
+        const unsubscribe = subscribeToDesktopUpdateStatus(showDesktopUpdateStatus);
+        return typeof unsubscribe === "function" ? unsubscribe : undefined;
+    }, [showDesktopUpdateStatus]);
+
     const updateRepository = async () => {
         if (updating) return;
         setUpdating(true);
         try {
             const result = await updateLocalRepository();
+            if (result.mode === "desktop") {
+                showDesktopUpdateStatus(result.event);
+                return;
+            }
             if (!result.updated) {
                 message.info(t("topNav.updateCurrent"));
                 return;
@@ -44,6 +64,10 @@ export function UserStatusActions({ showConfig = true, variant = "default", onOp
             message.success(t("topNav.updateSuccess"));
             window.setTimeout(() => window.location.reload(), 1200);
         } catch (error) {
+            if (isDesktopRuntime()) {
+                message.error(error instanceof Error && error.message ? error.message : t("topNav.desktopUpdate.failed"));
+                return;
+            }
             const code = error instanceof LocalRepositoryUpdateError ? error.code : "UPDATE_FAILED";
             const knownKeys: Record<string, string> = {
                 DIRTY_WORKTREE: "topNav.updateErrors.dirty",
@@ -60,8 +84,8 @@ export function UserStatusActions({ showConfig = true, variant = "default", onOp
 
     return (
         <div className="inline-flex shrink-0 items-center gap-1">
-            <Tooltip title={t("topNav.updateFromGitHub")} mouseEnterDelay={0.2}>
-                <button type="button" className={naturalIconClass} style={iconStyle} disabled={updating} onClick={() => void updateRepository()} aria-label={t("topNav.updateFromGitHub")}>
+            <Tooltip title={t(isDesktopRuntime() ? "topNav.desktopUpdate.action" : "topNav.updateFromGitHub")} mouseEnterDelay={0.2}>
+                <button type="button" className={naturalIconClass} style={iconStyle} disabled={updating} onClick={() => void updateRepository()} aria-label={t(isDesktopRuntime() ? "topNav.desktopUpdate.action" : "topNav.updateFromGitHub")}>
                     <CloudDownload className={updating ? "size-4 animate-pulse" : "size-4"} />
                 </button>
             </Tooltip>
