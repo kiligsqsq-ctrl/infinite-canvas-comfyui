@@ -14,7 +14,7 @@
     "start": "npm run prepare:resources && electron .",
     "test": "node --test test/*.test.cjs",
     "pack": "npm run prepare:resources && electron-builder --dir --win --x64",
-    "dist": "npm run prepare:resources && electron-builder --win nsis --x64"
+    "dist": "npm run prepare:resources && electron-builder --win nsis --x64 --publish never"
   },
   "dependencies": {
     "electron-log": "^5.4.4",
@@ -24,7 +24,7 @@
     "electron": "^44.2.0",
     "electron-builder": "^26.15.3",
     "png-to-ico": "^3.0.1",
-    "sharp": "^0.34.4"
+    "sharp": "^0.35.4"
   },
   "build": {
     "appId": "com.kiligsqsq.infinitecanvas",
