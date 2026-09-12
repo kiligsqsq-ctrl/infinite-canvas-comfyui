@@ -2,6 +2,8 @@
 
 ## Unreleased
 
++ [调整] 移除未使用的 GitHub Pages 发布流程，避免仓库未启用 Pages 时产生无关的失败检查。
+
 ## v0.0.1
 
 + [新增] 提供 Windows 桌面安装包、内置 Canvas Agent、自动更新清单与基于版本标签的 GitHub Release 自动发布流程。

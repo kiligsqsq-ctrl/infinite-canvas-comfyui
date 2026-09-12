@@ -1,7 +1,7 @@
 name: Publish Official Plugins
 
 # 构建官方插件并把产物(bundle + 清单)强推到孤儿分支 plugins-dist。
-# 与 github-pages.yml 一致,在打版本 tag 时触发 —— 发版时 web 与官方插件一起发布。
+# 在打版本 tag 时触发，发版时同步发布官方插件。
 # 前端经 jsDelivr 从该分支远程拉取;构建产物不进 main、不进 git。
 on:
   push:
