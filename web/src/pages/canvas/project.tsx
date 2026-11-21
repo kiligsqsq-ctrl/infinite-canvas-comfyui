@@ -231,6 +231,7 @@ function InfiniteCanvasPage() {
     const [selectionBox, setSelectionBox] = useState<SelectionBox | null>(null);
     const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
     const [nodeCreatePosition, setNodeCreatePosition] = useState<Position | null>(null);
+    const [alignmentGuides, setAlignmentGuides] = useState<{ x: number[]; y: number[] }>({ x: [], y: [] });
     const [runningNodeId, setRunningNodeId] = useState<string | null>(null);
     const [isMiniMapOpen, setIsMiniMapOpen] = useState(false);
     const [backgroundMode, setBackgroundMode] = useState<CanvasBackgroundMode>("lines");
@@ -434,7 +435,7 @@ function InfiniteCanvasPage() {
             const current = createHistoryEntry();
             const last = lastHistoryRef.current;
             if (!last) return;
-            historyRef.current.past = [...historyRef.current.past.slice(-49), last];
+            historyRef.current.past = [...historyRef.current.past.slice(-199), last];
             historyRef.current.future = [];
             setHistoryState({ canUndo: true, canRedo: false });
             lastHistoryRef.current = current;
@@ -619,6 +620,8 @@ function InfiniteCanvasPage() {
         [screenToCanvas],
     );
 
+    const collapsedGroupIds = useMemo(() => new Set(nodes.filter((node) => node.type === CanvasNodeType.Group && node.metadata?.collapsed).map((node) => node.id)), [nodes]);
+
     const visibleNodes = useMemo(() => {
         const padding = 280;
         const rect = containerRef.current?.getBoundingClientRect();
@@ -629,8 +632,10 @@ function InfiniteCanvasPage() {
         const viewRight = viewLeft + width / viewport.k + padding * 2;
         const viewBottom = viewTop + height / viewport.k + padding * 2;
 
-        return nodes.filter((node) => node.position.x + node.width > viewLeft && node.position.x < viewRight && node.position.y + node.height > viewTop && node.position.y < viewBottom);
-    }, [nodes, size.height, size.width, viewport.k, viewport.x, viewport.y]);
+        return nodes
+            .filter((node) => !(node.metadata?.groupId && collapsedGroupIds.has(node.metadata.groupId)))
+            .filter((node) => node.position.x + node.width > viewLeft && node.position.x < viewRight && node.position.y + node.height > viewTop && node.position.y < viewBottom);
+    }, [collapsedGroupIds, nodes, size.height, size.width, viewport.k, viewport.x, viewport.y]);
 
     const nodeById = useMemo(() => new Map(nodes.map((node) => [node.id, node])), [nodes]);
     // The toolbar follows a single selected node selected by click, creation, marquee, or keyboard.
@@ -756,14 +761,15 @@ function InfiniteCanvasPage() {
             if (!ids.size) return;
             const allIds = new Set(ids);
             setNodes((prev) => {
-                const next = prev.filter((node) => !allIds.has(node.id));
+                const next = prev.filter((node) => !allIds.has(node.id) || node.metadata?.locked);
                 return next.map((node) => {
                     const groupId = node.metadata?.groupId;
-                    if (groupId && allIds.has(groupId)) return { ...node, metadata: { ...node.metadata, groupId: undefined } };
+                    if (groupId && allIds.has(groupId) && !node.metadata?.locked) return { ...node, metadata: { ...node.metadata, groupId: undefined } };
                     return node;
                 });
             });
-            setConnections((prev) => prev.filter((conn) => !allIds.has(conn.fromNodeId) && !allIds.has(conn.toNodeId)));
+            const deletableIds = new Set(Array.from(allIds).filter((id) => !nodesRef.current.find((node) => node.id === id)?.metadata?.locked));
+            setConnections((prev) => prev.filter((conn) => !deletableIds.has(conn.fromNodeId) && !deletableIds.has(conn.toNodeId)));
             setSelectedNodeIds(new Set());
             setSelectedConnectionId(null);
             setHoveredNodeId((current) => (current && allIds.has(current) ? null : current));
@@ -777,7 +783,7 @@ function InfiniteCanvasPage() {
             setPreviewNodeId((current) => (current && allIds.has(current) ? null : current));
             setRunningNodeId((current) => (current && allIds.has(current) ? null : current));
             setContextMenu((current) => (current?.type === "node" && allIds.has(current.nodeId) ? null : current));
-            cleanupCanvasFiles({ projectId, nodes: nodesRef.current.filter((node) => !allIds.has(node.id)), chatSessions });
+            cleanupCanvasFiles({ projectId, nodes: nodesRef.current.filter((node) => !deletableIds.has(node.id)), chatSessions });
         },
         [chatSessions, cleanupCanvasFiles, projectId],
     );
@@ -1001,6 +1007,74 @@ function InfiniteCanvasPage() {
         applyHistory(next);
     }, [applyHistory]);
 
+    // Nudge selected (unlocked) nodes with the arrow keys.
+    const moveSelectedNodesBy = useCallback((dx: number, dy: number) => {
+        const ids = selectedNodeIdsRef.current;
+        if (!ids.size) return;
+        setNodes((prev) => prev.map((node) => (ids.has(node.id) && !node.metadata?.locked ? { ...node, position: { x: node.position.x + dx, y: node.position.y + dy } } : node)));
+    }, []);
+
+    // Align or evenly distribute selected nodes.
+    const alignSelectedNodes = useCallback((mode: "left" | "hcenter" | "right" | "top" | "vcenter" | "bottom" | "distribute-h" | "distribute-v") => {
+        const ids = selectedNodeIdsRef.current;
+        if (ids.size < 2) return;
+        setNodes((prev) => {
+            const selected = prev.filter((node) => ids.has(node.id) && !node.metadata?.locked);
+            if (selected.length < 2) return prev;
+            const left = Math.min(...selected.map((node) => node.position.x));
+            const right = Math.max(...selected.map((node) => node.position.x + node.width));
+            const top = Math.min(...selected.map((node) => node.position.y));
+            const bottom = Math.max(...selected.map((node) => node.position.y + node.height));
+            const centerX = (left + right) / 2;
+            const centerY = (top + bottom) / 2;
+            const updates = new Map<string, Position>();
+            if (mode === "distribute-h") {
+                const ordered = [...selected].sort((a, b) => a.position.x - b.position.x);
+                const totalWidth = ordered.reduce((sum, node) => sum + node.width, 0);
+                const gap = (right - left - totalWidth) / (ordered.length - 1);
+                let cursor = left;
+                ordered.forEach((node) => {
+                    updates.set(node.id, { x: cursor, y: node.position.y });
+                    cursor += node.width + gap;
+                });
+            } else if (mode === "distribute-v") {
+                const ordered = [...selected].sort((a, b) => a.position.y - b.position.y);
+                const totalHeight = ordered.reduce((sum, node) => sum + node.height, 0);
+                const gap = (bottom - top - totalHeight) / (ordered.length - 1);
+                let cursor = top;
+                ordered.forEach((node) => {
+                    updates.set(node.id, { x: node.position.x, y: cursor });
+                    cursor += node.height + gap;
+                });
+            } else {
+                selected.forEach((node) => {
+                    const x = mode === "left" ? left : mode === "hcenter" ? centerX - node.width / 2 : mode === "right" ? right - node.width : node.position.x;
+                    const y = mode === "top" ? top : mode === "vcenter" ? centerY - node.height / 2 : mode === "bottom" ? bottom - node.height : node.position.y;
+                    updates.set(node.id, { x, y });
+                });
+            }
+            return prev.map((node) => {
+                const position = updates.get(node.id);
+                return position ? { ...node, position } : node;
+            });
+        });
+    }, []);
+
+    // Toggle the locked flag for the selected nodes.
+    const toggleLockSelectedNodes = useCallback(() => {
+        const ids = selectedNodeIdsRef.current;
+        if (!ids.size) return;
+        const current = nodesRef.current.filter((node) => ids.has(node.id));
+        const nextLocked = !current.every((node) => node.metadata?.locked);
+        setNodes((prev) => prev.map((node) => (ids.has(node.id) ? { ...node, metadata: { ...node.metadata, locked: nextLocked } } : node)));
+        setContextMenu(null);
+    }, []);
+
+    // Collapse or expand a group node, hiding its child nodes.
+    const toggleGroupCollapsed = useCallback((groupId: string) => {
+        setNodes((prev) => prev.map((node) => (node.id === groupId ? { ...node, metadata: { ...node.metadata, collapsed: !node.metadata?.collapsed } } : node)));
+    }, []);
+
     const createAndOpenProject = useCallback(() => {
         const id = createProject(t("canvas.defaultTitle", { count: useCanvasStore.getState().projects.length + 1 }));
         navigate(`/canvas/${id}`);
@@ -1026,6 +1100,44 @@ function InfiniteCanvasPage() {
             hide();
         }
     }, [message, projectId, t]);
+
+    // Export the visible canvas as a PNG image.
+    const exportCanvasImage = useCallback(async () => {
+        const element = containerRef.current;
+        if (!element) return;
+        const hide = message.loading(t("canvas.exportingImage"), 0);
+        try {
+            const { default: html2canvas } = await import("html2canvas");
+            const canvas = await html2canvas(element, { backgroundColor: theme.canvas.background, scale: 2, useCORS: true, logging: false });
+            canvas.toBlob((blob) => {
+                if (blob) saveAs(blob, `${currentProject?.title || "canvas"}.png`);
+            }, "image/png");
+            message.success(t("canvas.exportedImage"));
+        } catch (error) {
+            console.error(error);
+            message.error(t("canvas.exportImageFailed"));
+        } finally {
+            hide();
+        }
+    }, [currentProject?.title, message, t, theme.canvas.background]);
+
+    // Notify the browser when a generation task finishes while the page is in the background.
+    const generationTasks = useGenerationTaskStore((state) => state.tasks);
+    const generationTasksRef = useRef(generationTasks);
+    useEffect(() => {
+        generationTasksRef.current = generationTasks;
+    }, [generationTasks]);
+    useEffect(() => {
+        const previous = generationTasksRef.current;
+        generationTasks.forEach((task) => {
+            if (task.projectId !== projectId) return;
+            const before = previous.find((item) => item.id === task.id);
+            const wasActive = before && (before.status === "queued" || before.status === "running");
+            if (!wasActive) return;
+            if (task.status === "completed") notifyGeneration(t("canvas.generationComplete"), task.title);
+            else if (task.status === "failed") notifyGeneration(t("canvas.projectPage.generationFailed"), task.title);
+        });
+    }, [generationTasks, projectId, t]);
 
     const handleCanvasMouseDown = useCallback(
         (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -1094,6 +1206,7 @@ function InfiniteCanvasPage() {
 
     const handleNodeMouseDown = useCallback((event: ReactMouseEvent, nodeId: string) => {
         event.stopPropagation();
+        if (nodesRef.current.find((node) => node.id === nodeId)?.metadata?.locked) return;
         // Capture already selected the node; this only starts dragging, with a fallback selection if capture did not run.
         const currentNodes = nodesRef.current;
         const nextSelected = pendingSelectionRef.current ?? selectNodeByEvent(event, nodeId).nextSelected;
@@ -1124,6 +1237,7 @@ function InfiniteCanvasPage() {
             cancelAnimationFrame(rafRef.current);
             rafRef.current = null;
         }
+        setAlignmentGuides({ x: [], y: [] });
         if (!dragRef.current.isDraggingNode) return;
 
         const wasClick = !dragRef.current.hasMoved && dragRef.current.initialSelectedNodes.length === 1;
@@ -1189,6 +1303,9 @@ function InfiniteCanvasPage() {
                     const initial = initialPositions.find((item) => item.id === node.id);
                     return initial ? { ...node, position: { x: initial.x + dx, y: initial.y + dy } } : node;
                 });
+                // Snap to nearby node edges/centers and show alignment guides; hold Alt to disable snapping.
+                const snap = event.altKey ? { dx, dy, guidesX: [] as number[], guidesY: [] as number[] } : computeAlignmentSnap(previewNodes, movedIds, dx, dy, 6 / currentViewport.k);
+                setAlignmentGuides({ x: snap.guidesX, y: snap.guidesY });
                 setDropTargetGroupId(findGroupDropTarget(movedIds, previewNodes)?.id || null);
 
                 if (rafRef.current) cancelAnimationFrame(rafRef.current);
@@ -1196,7 +1313,7 @@ function InfiniteCanvasPage() {
                     setNodes((prev) =>
                         prev.map((node) => {
                             const initial = initialPositions.find((item) => item.id === node.id);
-                            return initial ? { ...node, position: { x: initial.x + dx, y: initial.y + dy } } : node;
+                            return initial ? { ...node, position: { x: initial.x + snap.dx, y: initial.y + snap.dy } } : node;
                         }),
                     );
                     rafRef.current = null;
@@ -1468,6 +1585,16 @@ function InfiniteCanvasPage() {
                 }
             }
 
+            if (!isModifierShortcut && !event.altKey && (key === "arrowleft" || key === "arrowright" || key === "arrowup" || key === "arrowdown")) {
+                if (!selectedNodeIdsRef.current.size) return;
+                event.preventDefault();
+                const step = event.shiftKey ? 10 : 1;
+                const dx = key === "arrowleft" ? -step : key === "arrowright" ? step : 0;
+                const dy = key === "arrowup" ? -step : key === "arrowdown" ? step : 0;
+                moveSelectedNodesBy(dx, dy);
+                return;
+            }
+
             if (event.key === "Escape") {
                 setSelectedNodeIds(new Set());
                 setSelectedConnectionId(null);
@@ -1488,7 +1615,7 @@ function InfiniteCanvasPage() {
 
         window.addEventListener("keydown", handleKeyDown);
         return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [copySelectedNodes, deleteConnection, deleteNodes, pasteCopiedNodes, pasteSystemClipboard, redoCanvas, selectedConnectionId, setConnecting, undoCanvas]);
+    }, [copySelectedNodes, deleteConnection, deleteNodes, moveSelectedNodesBy, pasteCopiedNodes, pasteSystemClipboard, redoCanvas, selectedConnectionId, setConnecting, undoCanvas]);
 
     const handleConnectStart = useCallback(
         (event: ReactMouseEvent, nodeId: string, handleType: "source" | "target") => {
@@ -1503,7 +1630,7 @@ function InfiniteCanvasPage() {
     );
 
     const handleNodeResize = useCallback((nodeId: string, width: number, height: number, position?: Position) => {
-        setNodes((prev) => prev.map((node) => (node.id === nodeId ? { ...node, width, height, position: position || node.position } : node)));
+        setNodes((prev) => prev.map((node) => (node.id === nodeId && !node.metadata?.locked ? { ...node, width, height, position: position || node.position } : node)));
     }, []);
 
     const handleNodeResizeStart = useCallback(() => {
@@ -2896,6 +3023,7 @@ function InfiniteCanvasPage() {
                     onCreateProject={createAndOpenProject}
                     onDeleteProject={deleteCurrentProject}
                     onExportProject={exportCurrentProject}
+                    onExportImage={() => void exportCanvasImage()}
                     onImportImage={() => handleUploadRequest()}
                     onOpenPlugins={() => setPluginManagerOpen(true)}
                     onUndo={undoCanvas}
@@ -2997,6 +3125,7 @@ function InfiniteCanvasPage() {
                             onGenerateImage={generateImageFromTextNode}
                             onViewImage={handleNodeViewImage}
                             onContextMenu={handleNodeContextMenu}
+                            onToggleGroupCollapsed={toggleGroupCollapsed}
                         />
                     ))}
 
@@ -3013,10 +3142,21 @@ function InfiniteCanvasPage() {
                             <rect width="100%" height="100%" fill={theme.canvas.selectionFill} stroke={theme.canvas.selectionStroke} strokeOpacity={0.55} strokeWidth={1 / viewport.k} strokeDasharray={`${6 / viewport.k} ${4 / viewport.k}`} />
                         </svg>
                     ) : null}
-                    {pendingConnectionCreate ? <ConnectionCreateMenu pending={pendingConnectionCreate} onCreate={(type) => createConnectedNode(type, pendingConnectionCreate)} onClose={cancelPendingConnectionCreate} /> : null}
+                    {alignmentGuides.x.length || alignmentGuides.y.length ? (
+                        <svg className="pointer-events-none absolute z-[110] overflow-visible" style={{ left: 0, top: 0 }}>
+                            {alignmentGuides.x.map((x) => (
+                                <line key={`guide-x-${x}`} x1={x} y1={-100000} x2={x} y2={100000} stroke={theme.canvas.selectionStroke} strokeWidth={1 / viewport.k} opacity={0.7} />
+                            ))}
+                            {alignmentGuides.y.map((y) => (
+                                <line key={`guide-y-${y}`} x1={-100000} y1={y} x2={100000} y2={y} stroke={theme.canvas.selectionStroke} strokeWidth={1 / viewport.k} opacity={0.7} />
+                            ))}
+                        </svg>
+                    ) : null}
+                    {pendingConnectionCreate ? <ConnectionCreateMenu pending={pendingConnectionCreate} scale={viewport.k} onCreate={(type) => createConnectedNode(type, pendingConnectionCreate)} onClose={cancelPendingConnectionCreate} /> : null}
                     {nodeCreatePosition ? (
                         <NodeCreateMenu
                             position={nodeCreatePosition}
+                            scale={viewport.k}
                             onCreate={(type) => {
                                 createNode(type, nodeCreatePosition);
                                 setNodeCreatePosition(null);
@@ -3099,6 +3239,13 @@ function InfiniteCanvasPage() {
                             } else {
                                 deleteConnection(contextMenu.connectionId);
                             }
+                            setContextMenu(null);
+                        }}
+                        locked={contextMenu.type === "node" ? Boolean(nodeById.get(contextMenu.nodeId)?.metadata?.locked) : false}
+                        onToggleLock={toggleLockSelectedNodes}
+                        canAlign={selectedNodeIds.size > 1}
+                        onAlign={(mode) => {
+                            alignSelectedNodes(mode);
                             setContextMenu(null);
                         }}
                     />
@@ -3189,4 +3336,68 @@ function assetToInsertPayload(asset: Asset): InsertAssetPayload {
     if (asset.kind === "video") return { kind: "video", url: asset.data.url, storageKey: asset.data.storageKey, title: asset.title, width: asset.data.width, height: asset.data.height };
     if (asset.kind === "audio") return { kind: "audio", url: asset.data.url, storageKey: asset.data.storageKey, title: asset.title };
     return { kind: "image", dataUrl: asset.data.dataUrl, storageKey: asset.data.storageKey, title: asset.title };
+}
+
+// Snap a dragged group to the edges/centers of other nodes and return the guides to draw.
+function computeAlignmentSnap(nodes: CanvasNodeData[], movedIds: Set<string>, rawDx: number, rawDy: number, tolerance: number) {
+    const moved = nodes.filter((node) => movedIds.has(node.id));
+    if (!moved.length) return { dx: rawDx, dy: rawDy, guidesX: [] as number[], guidesY: [] as number[] };
+    const others = nodes.filter((node) => !movedIds.has(node.id));
+    const bbox = {
+        left: Math.min(...moved.map((node) => node.position.x)),
+        right: Math.max(...moved.map((node) => node.position.x + node.width)),
+        top: Math.min(...moved.map((node) => node.position.y)),
+        bottom: Math.max(...moved.map((node) => node.position.y + node.height)),
+    };
+    const candidatesX = [bbox.left, (bbox.left + bbox.right) / 2, bbox.right];
+    const candidatesY = [bbox.top, (bbox.top + bbox.bottom) / 2, bbox.bottom];
+    const otherXs: number[] = [];
+    const otherYs: number[] = [];
+    others.forEach((other) => {
+        otherXs.push(other.position.x, other.position.x + other.width / 2, other.position.x + other.width);
+        otherYs.push(other.position.y, other.position.y + other.height / 2, other.position.y + other.height);
+    });
+    let bestDx = 0;
+    let bestDistX = tolerance + 1;
+    let bestDy = 0;
+    let bestDistY = tolerance + 1;
+    otherXs.forEach((target) => {
+        candidatesX.forEach((candidate) => {
+            const dist = target - candidate;
+            if (Math.abs(dist) < bestDistX) {
+                bestDistX = Math.abs(dist);
+                bestDx = dist;
+            }
+        });
+    });
+    otherYs.forEach((target) => {
+        candidatesY.forEach((candidate) => {
+            const dist = target - candidate;
+            if (Math.abs(dist) < bestDistY) {
+                bestDistY = Math.abs(dist);
+                bestDy = dist;
+            }
+        });
+    });
+    const applyX = bestDistX <= tolerance;
+    const applyY = bestDistY <= tolerance;
+    const snappedX = candidatesX.map((value) => value + (applyX ? bestDx : 0));
+    const snappedY = candidatesY.map((value) => value + (applyY ? bestDy : 0));
+    const guidesX = applyX ? Array.from(new Set(otherXs.filter((target) => snappedX.some((value) => Math.abs(value - target) < 0.5)))) : [];
+    const guidesY = applyY ? Array.from(new Set(otherYs.filter((target) => snappedY.some((value) => Math.abs(value - target) < 0.5)))) : [];
+    return { dx: rawDx + (applyX ? bestDx : 0), dy: rawDy + (applyY ? bestDy : 0), guidesX, guidesY };
+}
+
+// Browser notification for finished generation tasks (permission requested on first finish).
+function notifyGeneration(title: string, body: string) {
+    if (typeof Notification === "undefined") return;
+    if (Notification.permission === "granted") {
+        try {
+            new Notification(title, { body });
+        } catch {
+            // Notifications may be blocked by the platform; ignore.
+        }
+    } else if (Notification.permission === "default") {
+        void Notification.requestPermission();
+    }
 }

@@ -72,6 +72,8 @@ export type CanvasNodeMetadata = {
     bytes?: number;
     durationMs?: number;
     groupId?: string;
+    locked?: boolean;
+    collapsed?: boolean;
     interactive?: boolean; // Plugin node interaction/move state; see CanvasNodeDefinition.interactionToggle.
     missingMedia?: boolean;
 };

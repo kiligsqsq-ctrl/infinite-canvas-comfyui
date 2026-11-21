@@ -16,10 +16,12 @@ export type CanvasUploadKind = "image" | "video" | "audio";
 
 export function ConnectionCreateMenu({
     pending,
+    scale = 1,
     onCreate,
     onClose,
 }: {
     pending: PendingConnectionCreate;
+    scale?: number;
     onCreate: (type: CanvasNodeType.Image | CanvasNodeType.Text | CanvasNodeType.Config | CanvasNodeType.Video | CanvasNodeType.Audio) => void;
     onClose: () => void;
 }) {
@@ -29,7 +31,7 @@ export function ConnectionCreateMenu({
         <div
             className="absolute z-[120] w-[300px] rounded-[18px] border p-3 shadow-2xl backdrop-blur"
             data-connection-create-menu
-            style={{ left: pending.position.x, top: pending.position.y, background: theme.node.panel, borderColor: theme.node.stroke, color: theme.node.text }}
+            style={{ left: pending.position.x, top: pending.position.y, transform: `scale(${1 / scale})`, transformOrigin: "top left", background: theme.node.panel, borderColor: theme.node.stroke, color: theme.node.text }}
             onMouseDown={(event) => event.stopPropagation()}
             onPointerDown={(event) => event.stopPropagation()}
         >
@@ -77,7 +79,7 @@ export function ConnectionCreateOption({ theme, icon, title, description, onClic
     );
 }
 
-export function NodeCreateMenu({ position, onCreate, onUpload, onClose }: { position: Position; onCreate: (type: string) => void; onUpload: (kind: CanvasUploadKind) => void; onClose: () => void }) {
+export function NodeCreateMenu({ position, scale = 1, onCreate, onUpload, onClose }: { position: Position; scale?: number; onCreate: (type: string) => void; onUpload: (kind: CanvasUploadKind) => void; onClose: () => void }) {
     const theme = canvasThemes[useThemeStore((state) => state.theme)];
     const { t } = useTranslation();
     useNodeRegistryVersion();
@@ -96,7 +98,7 @@ export function NodeCreateMenu({ position, onCreate, onUpload, onClose }: { posi
             ref={menuRef}
             className="absolute z-[120] max-h-[70vh] w-[300px] overflow-y-auto rounded-[18px] border p-3 shadow-2xl backdrop-blur thin-scrollbar"
             data-canvas-no-zoom
-            style={{ left: position.x, top: position.y, background: theme.node.panel, borderColor: theme.node.stroke, color: theme.node.text }}
+            style={{ left: position.x, top: position.y, transform: `scale(${1 / scale})`, transformOrigin: "top left", background: theme.node.panel, borderColor: theme.node.stroke, color: theme.node.text }}
             onPointerDown={(event) => event.stopPropagation()}
         >
             <div className="mb-2 flex items-center justify-between px-1">

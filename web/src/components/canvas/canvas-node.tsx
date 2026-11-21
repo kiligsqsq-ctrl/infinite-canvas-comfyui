@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { ChevronRight, Copy, Download, Group, Image as ImageIcon, Music2, Puzzle, RefreshCw, Star, Trash2, Video } from "lucide-react";
+import { ChevronDown, ChevronRight, Copy, Download, Group, Image as ImageIcon, Lock, Music2, Puzzle, RefreshCw, Star, Trash2, Video } from "lucide-react";
 
 import { canvasThemes } from "@/lib/canvas-theme";
 import { formatBytes } from "@/lib/image-utils";
@@ -55,6 +55,7 @@ type CanvasNodeProps = {
     onGenerateImage?: (node: CanvasNodeData) => void;
     onViewImage?: (node: CanvasNodeData) => void;
     onContextMenu: (event: React.MouseEvent, nodeId: string) => void;
+    onToggleGroupCollapsed?: (nodeId: string) => void;
 };
 
 type NodeContentRendererProps = {
@@ -119,6 +120,7 @@ export const CanvasNode = React.memo(function CanvasNode({
     onGenerateImage,
     onViewImage,
     onContextMenu,
+    onToggleGroupCollapsed,
 }: CanvasNodeProps) {
     const theme = canvasThemes[useThemeStore((state) => state.theme)];
     const { t } = useTranslation();
@@ -319,6 +321,29 @@ export const CanvasNode = React.memo(function CanvasNode({
             onMouseDownCapture={(event) => onSelectCapture?.(event, data.id)}
             onContextMenu={(event) => onContextMenu(event, data.id)}
         >
+            {(isGroup || data.metadata?.locked) ? (
+                <div className="absolute right-2 top-2 z-[66] flex items-center gap-1" onMouseDown={(event) => event.stopPropagation()} onPointerDown={(event) => event.stopPropagation()}>
+                    {isGroup ? (
+                        <button
+                            type="button"
+                            className="grid size-6 place-items-center rounded-full opacity-80 transition hover:opacity-100"
+                            style={{ background: theme.toolbar.panel, color: theme.node.muted }}
+                            title={t(data.metadata?.collapsed ? "canvas.node.expandGroup" : "canvas.node.collapseGroup")}
+                            onClick={(event) => {
+                                event.stopPropagation();
+                                onToggleGroupCollapsed?.(data.id);
+                            }}
+                        >
+                            {data.metadata?.collapsed ? <ChevronRight className="size-3.5" /> : <ChevronDown className="size-3.5" />}
+                        </button>
+                    ) : null}
+                    {data.metadata?.locked ? (
+                        <div className="grid size-6 place-items-center rounded-full opacity-80" style={{ background: theme.toolbar.panel, color: theme.node.muted }} title={t("canvas.node.locked")}>
+                            <Lock className="size-3.5" />
+                        </div>
+                    ) : null}
+                </div>
+            ) : null}
             {(isSelected || hovered || isEditingTitle) && (
                 <div className="absolute left-3 top-[-28px] z-[65] max-w-[calc(100%-24px)]" onMouseDown={(event) => event.stopPropagation()} onPointerDown={(event) => event.stopPropagation()}>
                     {isEditingTitle ? (
@@ -465,6 +490,7 @@ const nodeContentRenderers = {
 
 function GroupNodeContent({ node, theme, groupChildCount }: NodeContentRendererProps) {
     const { t } = useTranslation();
+    const collapsed = Boolean(node.metadata?.collapsed);
     return (
         <div className="pointer-events-none flex h-full w-full flex-col p-4">
             <div className="flex items-center gap-2 text-sm font-semibold" style={{ color: theme.node.text }}>
@@ -476,7 +502,13 @@ function GroupNodeContent({ node, theme, groupChildCount }: NodeContentRendererP
                     {t("canvas.node.nodeCount", { count: groupChildCount })}
                 </span>
             </div>
-            <div className="mt-3 flex-1 rounded-2xl border border-dashed" style={{ borderColor: theme.node.stroke, background: `${theme.node.fill}55` }} />
+            {collapsed ? (
+                <div className="mt-3 text-xs" style={{ color: theme.node.muted }}>
+                    {t("canvas.node.groupCollapsed")}
+                </div>
+            ) : (
+                <div className="mt-3 flex-1 rounded-2xl border border-dashed" style={{ borderColor: theme.node.stroke, background: `${theme.node.fill}55` }} />
+            )}
         </div>
     );
 }
@@ -570,7 +602,7 @@ function TextContent({ node, theme, isEditingContent, textareaRef, mentionRefere
                     style={textStyle}
                     onWheel={(event) => event.stopPropagation()}
                 >
-                    {node.metadata?.content || <span style={{ color: theme.node.placeholder }}>{t("canvas.node.editText")}</span>}
+                    {node.metadata?.content ? isMarkdownText(node.metadata.content) ? <MarkdownText content={node.metadata.content} /> : node.metadata.content : <span style={{ color: theme.node.placeholder }}>{t("canvas.node.editText")}</span>}
                 </div>
             )}
         </div>
@@ -873,4 +905,100 @@ function ConnectionHandleDot({ side, visible, onMouseDown }: { side: "left" | "r
             <div className="size-3 rounded-full border-2 transition-all hover:scale-125" style={{ background: theme.node.panel, borderColor: theme.node.muted }} />
         </div>
     );
+}
+
+// Render basic Markdown (headings, lists, code blocks, bold/italic/inline code) in text nodes.
+function isMarkdownText(content: string) {
+    return /(^|\n)(#{1,3}\s|```|\s*[-*]\s)|\*\*[^*]+\*\*|`[^`]+`/.test(content);
+}
+
+function renderInlineMarkdown(text: string, keyPrefix: string): React.ReactNode[] {
+    const parts: React.ReactNode[] = [];
+    const regex = /(\*\*[^*]+\*\*|`[^`]+`|\*[^*]+\*)/g;
+    let lastIndex = 0;
+    let match: RegExpExecArray | null;
+    let index = 0;
+    while ((match = regex.exec(text))) {
+        if (match.index > lastIndex) parts.push(text.slice(lastIndex, match.index));
+        const token = match[0];
+        if (token.startsWith("**")) parts.push(<strong key={`${keyPrefix}-${index}`}>{token.slice(2, -2)}</strong>);
+        else if (token.startsWith("`")) parts.push(<code key={`${keyPrefix}-${index}`} className="rounded bg-black/10 px-1 dark:bg-white/10">{token.slice(1, -1)}</code>);
+        else parts.push(<em key={`${keyPrefix}-${index}`}>{token.slice(1, -1)}</em>);
+        index += 1;
+        lastIndex = match.index + token.length;
+    }
+    if (lastIndex < text.length) parts.push(text.slice(lastIndex));
+    return parts;
+}
+
+function MarkdownText({ content }: { content: string }) {
+    const blocks: React.ReactNode[] = [];
+    const listItems: React.ReactNode[] = [];
+    const codeLines: string[] = [];
+    let inCode = false;
+    const flushList = () => {
+        if (!listItems.length) return;
+        blocks.push(
+            <ul key={`ul-${blocks.length}`} className="my-1 list-disc pl-5">
+                {listItems.splice(0)}
+            </ul>,
+        );
+    };
+    content.split("\n").forEach((line, index) => {
+        if (line.startsWith("```")) {
+            if (inCode) {
+                blocks.push(
+                    <pre key={`pre-${blocks.length}`} className="my-1 overflow-x-auto rounded bg-black/10 p-2 text-[0.9em] dark:bg-white/10">
+                        {codeLines.join("\n")}
+                    </pre>,
+                );
+                codeLines.length = 0;
+                inCode = false;
+            } else {
+                flushList();
+                inCode = true;
+            }
+            return;
+        }
+        if (inCode) {
+            codeLines.push(line);
+            return;
+        }
+        const heading = /^(#{1,3})\s+(.*)$/.exec(line);
+        if (heading) {
+            flushList();
+            const level = heading[1].length;
+            const className = level === 1 ? "mt-1 text-[1.3em] font-semibold" : level === 2 ? "mt-1 text-[1.15em] font-semibold" : "mt-1 text-[1.05em] font-semibold";
+            blocks.push(
+                <div key={`h-${index}`} className={className}>
+                    {renderInlineMarkdown(heading[2], `h-${index}`)}
+                </div>,
+            );
+            return;
+        }
+        const list = /^\s*[-*]\s+(.*)$/.exec(line);
+        if (list) {
+            listItems.push(<li key={`li-${index}`}>{renderInlineMarkdown(list[1], `li-${index}`)}</li>);
+            return;
+        }
+        flushList();
+        if (!line.trim()) {
+            blocks.push(<div key={`sp-${index}`} className="h-1.5" />);
+            return;
+        }
+        blocks.push(
+            <p key={`p-${index}`} className="my-0.5">
+                {renderInlineMarkdown(line, `p-${index}`)}
+            </p>,
+        );
+    });
+    flushList();
+    if (inCode) {
+        blocks.push(
+            <pre key={`pre-tail`} className="my-1 overflow-x-auto rounded bg-black/10 p-2 text-[0.9em] dark:bg-white/10">
+                {codeLines.join("\n")}
+            </pre>,
+        );
+    }
+    return <div className="space-y-0.5">{blocks}</div>;
 }

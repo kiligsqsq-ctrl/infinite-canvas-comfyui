@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { Download, FileWarning, Home, Images, Menu, PanelLeftClose, PanelLeftOpen, Plus, Redo2, Trash2, Undo2, Upload } from "lucide-react";
+import { Download, FileWarning, FolderOpen, Home, ImageDown, Images, Menu, PanelLeftClose, PanelLeftOpen, Plus, Redo2, Trash2, Undo2, Upload } from "lucide-react";
 import { Badge, Dropdown, Modal, Tooltip } from "antd";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 
 import { UserStatusActions } from "@/components/layout/user-status-actions";
 import { CanvasGenerationTaskCenter } from "@/components/canvas/canvas-generation-task-center";
 import { canvasThemes } from "@/lib/canvas-theme";
+import { useCanvasStore } from "@/stores/canvas/use-canvas-store";
 import { useCanvasSidePanelStore } from "@/stores/use-canvas-side-panel-store";
 import { useThemeStore } from "@/stores/use-theme-store";
 
@@ -24,6 +26,7 @@ export function CanvasTopBar({
     onCreateProject,
     onDeleteProject,
     onExportProject,
+    onExportImage,
     onImportImage,
     onOpenPlugins,
     onUndo,
@@ -48,6 +51,7 @@ export function CanvasTopBar({
     onCreateProject: () => void;
     onDeleteProject: () => void;
     onExportProject: () => void;
+    onExportImage: () => void;
     onImportImage: () => void;
     onOpenPlugins: () => void;
     onUndo: () => void;
@@ -61,6 +65,9 @@ export function CanvasTopBar({
     const colorTheme = useThemeStore((state) => state.theme);
     const { t } = useTranslation();
     const theme = canvasThemes[colorTheme];
+    const navigate = useNavigate();
+    const projects = useCanvasStore((state) => state.projects);
+    const otherProjects = projects.filter((project) => project.id !== projectId);
     const titleRef = useRef<HTMLDivElement>(null);
     const [shortcutsOpen, setShortcutsOpen] = useState(false);
     const sidePanelOpen = useCanvasSidePanelStore((state) => state.panelOpen);
@@ -96,12 +103,20 @@ export function CanvasTopBar({
                             items: [
                                 { key: "home", icon: <Home className="size-4" />, label: t("canvas.home"), onClick: onHome },
                                 { key: "projects", icon: <Images className="size-4" />, label: t("canvas.projects"), onClick: onProjects },
+                                {
+                                    key: "switch",
+                                    icon: <FolderOpen className="size-4" />,
+                                    label: t("canvas.switchProject"),
+                                    disabled: !otherProjects.length,
+                                    children: otherProjects.slice(0, 12).map((project) => ({ key: `switch-${project.id}`, label: project.title || t("canvas.node.untitled"), onClick: () => navigate(`/canvas/${project.id}`) })),
+                                },
                                 { type: "divider" },
                                 { key: "new", icon: <Plus className="size-4" />, label: t("canvas.create"), onClick: onCreateProject },
                                 { key: "delete", danger: true, icon: <Trash2 className="size-4" />, label: t("canvas.deleteCurrent"), onClick: onDeleteProject },
                                 { type: "divider" },
                                 { key: "import", icon: <Upload className="size-4" />, label: t("canvas.importAsset"), onClick: onImportImage },
                                 { key: "export", icon: <Download className="size-4" />, label: t("canvas.exportCurrent"), onClick: onExportProject },
+                                { key: "export-image", icon: <ImageDown className="size-4" />, label: t("canvas.exportImage"), onClick: onExportImage },
                                 { type: "divider" },
                                 { key: "undo", disabled: !canUndo, icon: <Undo2 className="size-4" />, label: <MenuLabel text={t("canvas.undo")} shortcut="⌘ Z" />, onClick: onUndo },
                                 { key: "redo", disabled: !canRedo, icon: <Redo2 className="size-4" />, label: <MenuLabel text={t("canvas.redo")} shortcut="⌘ ⇧ Z / ⌘ Y" />, onClick: onRedo },

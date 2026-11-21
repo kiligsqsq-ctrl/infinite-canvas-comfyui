@@ -32,6 +32,9 @@ export function InfiniteCanvas({ containerRef, viewport, tool, backgroundMode = 
     const scaleRef = useRef(viewport.k);
     const frameRef = useRef<number | null>(null);
     const nextViewportRef = useRef<ViewportTransform | null>(null);
+    // Two-finger pinch zoom on touch screens.
+    const pointersRef = useRef(new Map<number, { x: number; y: number }>());
+    const pinchRef = useRef<{ distance: number; viewport: ViewportTransform } | null>(null);
     const [isSpacePressed, setIsSpacePressed] = useState(false);
     const [isControlPressed, setIsControlPressed] = useState(false);
     const [isPanning, setIsPanning] = useState(false);
@@ -71,6 +74,8 @@ export function InfiniteCanvas({ containerRef, viewport, tool, backgroundMode = 
             setIsControlPressed(false);
             panState.current.isPanning = false;
             setIsPanning(false);
+            pointersRef.current.clear();
+            pinchRef.current = null;
             document.body.style.cursor = "";
         };
 
@@ -107,6 +112,15 @@ export function InfiniteCanvas({ containerRef, viewport, tool, backgroundMode = 
     };
 
     const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+        if (event.pointerType === "touch") {
+            pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+            if (pointersRef.current.size >= 2) {
+                const points = Array.from(pointersRef.current.values()).slice(0, 2);
+                pinchRef.current = { distance: Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y), viewport: { ...viewport } };
+                event.preventDefault();
+                return;
+            }
+        }
         const target = event.target instanceof Element ? event.target : null;
         if (target?.closest("[data-canvas-no-zoom]")) return;
         if (target?.closest("[data-connection-create-menu]")) return;
@@ -147,6 +161,25 @@ export function InfiniteCanvas({ containerRef, viewport, tool, backgroundMode = 
 
     useEffect(() => {
         const handlePointerMove = (event: PointerEvent) => {
+            if (event.pointerType === "touch") {
+                if (pointersRef.current.has(event.pointerId)) pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+                const pinch = pinchRef.current;
+                if (pinch && pointersRef.current.size >= 2) {
+                    const points = Array.from(pointersRef.current.values()).slice(0, 2);
+                    const distance = Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y);
+                    const rect = containerRef.current?.getBoundingClientRect();
+                    if (rect && pinch.distance > 0 && distance > 0) {
+                        const factor = distance / pinch.distance;
+                        const newScale = Math.min(Math.max(pinch.viewport.k * factor, 0.05), 5);
+                        const centerX = (points[0].x + points[1].x) / 2 - rect.left;
+                        const centerY = (points[0].y + points[1].y) / 2 - rect.top;
+                        const worldX = (centerX - pinch.viewport.x) / pinch.viewport.k;
+                        const worldY = (centerY - pinch.viewport.y) / pinch.viewport.k;
+                        onViewportChange({ x: centerX - worldX * newScale, y: centerY - worldY * newScale, k: newScale });
+                    }
+                    return;
+                }
+            }
             if (!panState.current.isPanning) return;
 
             const dx = event.clientX - panState.current.startX;
@@ -167,7 +200,9 @@ export function InfiniteCanvas({ containerRef, viewport, tool, backgroundMode = 
             });
         };
 
-        const handlePointerUp = () => {
+        const handlePointerUp = (event: PointerEvent) => {
+            pointersRef.current.delete(event.pointerId);
+            if (pointersRef.current.size < 2) pinchRef.current = null;
             if (!panState.current.isPanning) return;
 
             if (!panState.current.hasMoved && panState.current.startedOnBackground) {

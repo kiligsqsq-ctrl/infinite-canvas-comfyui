@@ -1,6 +1,6 @@
 {
     "name": "infinite-canvas",
-    "version": "0.0.5",
+    "version": "0.1.0",
     "private": true,
     "type": "module",
     "scripts": {
@@ -26,6 +26,7 @@
         "dayjs": "^1.11.20",
         "fflate": "^0.8.3",
         "file-saver": "^2.0.5",
+        "html2canvas": "^1.4.1",
         "i18next": "^26.3.6",
         "localforage": "^1.10.0",
         "lucide-react": "^1.16.0",
