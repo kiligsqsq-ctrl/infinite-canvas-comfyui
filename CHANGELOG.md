@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## v0.0.3
+
++ [调整] 移除配置页的「偏好设置」与「WebDAV」入口：删除 WebDAV 同步服务、远端目录配置与相关同步进度界面；配置文件导出/导入不再包含 WebDAV 凭据。默认模型和生成偏好改由各生成节点单独选择。
++ [调整] 本地服务快捷接入只保留 ComfyUI 预设，移除 Ollama、LM Studio 和通用本地接口预设及其服务类型；ComfyUI 预设改为通用名称且不再预置 MiniMax-H3 模型，ComfyUI 渠道编辑只保留渠道名称、ComfyUI 接口地址与上传 API 工作流，隐藏协议和 API Key。
+
 ## v0.0.2
 
 + [调整] 移除本地 Canvas Agent：删除画布右侧 Agent 面板、canvas-agent 后端服务、桌面版内置 Agent 及其打包与版本校验配置，保留画布插件使用的画布指令集能力。

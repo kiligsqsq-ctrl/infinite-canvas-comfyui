@@ -34,6 +34,7 @@ export function ChannelEditorDrawer({ open, channel, onSave, onClose }: { open: 
     if (!draft) return null;
 
     const localChannel = isLocalModelChannel(draft);
+    const isComfyUi = draft.serviceType === "comfyui";
     const apiKeyRequired = channelRequiresApiKey(draft);
 
     const patch = (value: Partial<ModelChannel>) => setDraft((current) => (current ? { ...current, ...value } : current));
@@ -113,24 +114,28 @@ export function ChannelEditorDrawer({ open, channel, onSave, onClose }: { open: 
                 />
             ) : null}
             <div className="grid gap-4 md:grid-cols-2">
-                <label className="block">
+                <label className={isComfyUi ? "block md:col-span-2" : "block"}>
                     <span className="mb-1 block text-sm font-medium">{t("config.channelEditor.name")}</span>
                     <Input value={draft.name} onChange={(event) => patch({ name: event.target.value })} />
                 </label>
-                <label className="block">
-                    <span className="mb-1 block text-sm font-medium">{t("config.channelEditor.protocol")}</span>
-                    <Select className="w-full" value={draft.apiFormat} options={apiFormatOptions} onChange={changeApiFormat} />
-                </label>
+                {isComfyUi ? null : (
+                    <label className="block">
+                        <span className="mb-1 block text-sm font-medium">{t("config.channelEditor.protocol")}</span>
+                        <Select className="w-full" value={draft.apiFormat} options={apiFormatOptions} onChange={changeApiFormat} />
+                    </label>
+                )}
                 <label className="block md:col-span-2">
                     <span className="mb-1 block text-sm font-medium">{t("config.channelEditor.baseUrl")}</span>
                     <Input value={draft.baseUrl} onChange={(event) => patch({ baseUrl: event.target.value })} placeholder="https://api.example.com" />
                 </label>
-                <label className="block md:col-span-2">
-                    <span className="mb-1 block text-sm font-medium">
-                        API Key {!apiKeyRequired ? <span className="font-normal text-stone-500">{t("config.channelEditor.localKeyOptional")}</span> : null}
-                    </span>
-                    <Input.Password value={draft.apiKey} onChange={(event) => patch({ apiKey: event.target.value })} placeholder={apiKeyRequired ? "sk-..." : t("config.channelEditor.localKeyPlaceholder")} />
-                </label>
+                {isComfyUi ? null : (
+                    <label className="block md:col-span-2">
+                        <span className="mb-1 block text-sm font-medium">
+                            API Key {!apiKeyRequired ? <span className="font-normal text-stone-500">{t("config.channelEditor.localKeyOptional")}</span> : null}
+                        </span>
+                        <Input.Password value={draft.apiKey} onChange={(event) => patch({ apiKey: event.target.value })} placeholder={apiKeyRequired ? "sk-..." : t("config.channelEditor.localKeyPlaceholder")} />
+                    </label>
+                )}
             </div>
             <div className="mt-3 flex justify-end">
                 <Button icon={<PlugZap className="size-4" />} loading={testingConnection} onClick={() => void testConnection()}>
