@@ -1,7 +1,7 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { App, Button } from "antd";
-import { Download, FileUp, Plus } from "lucide-react";
+import { App, Button, Input, Select } from "antd";
+import { Download, FileUp, Plus, Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { readZip } from "@/lib/zip";
@@ -13,6 +13,8 @@ import type { CanvasExportFile } from "@/types/canvas-export";
 import { useCanvasStore } from "@/stores/canvas/use-canvas-store";
 import { useCanvasUiStore } from "@/stores/canvas/use-canvas-ui-store";
 import { exportCanvasProjects } from "@/lib/canvas/canvas-export";
+
+type ProjectSortMode = "updated" | "created" | "title";
 
 export default function CanvasPage() {
     const { message } = App.useApp();
@@ -27,6 +29,8 @@ export default function CanvasPage() {
     const importProject = useCanvasStore((state) => state.importProject);
     const selectedIds = useCanvasUiStore((state) => state.selectedProjectIds);
     const setDeleteIds = useCanvasUiStore((state) => state.setDeleteProjectIds);
+    const [keyword, setKeyword] = useState("");
+    const [sortMode, setSortMode] = useState<ProjectSortMode>("updated");
 
     const mode = searchParams.get("mode");
     const enterProject = (id: string) => {
@@ -65,11 +69,25 @@ export default function CanvasPage() {
         enterProject(mode === "new" ? createProject(t("canvas.defaultTitle", { count: projects.length + 1 })) : projects[0]?.id || createProject(t("canvas.defaultTitle", { count: projects.length + 1 })));
     }, [createProject, hydrated, mode, projects, t]);
 
+    const visibleProjects = useMemo(() => {
+        const query = keyword.trim().toLowerCase();
+        const filtered = query ? projects.filter((project) => project.title.toLowerCase().includes(query)) : projects;
+        const sorted = [...filtered];
+        switch (sortMode) {
+            case "created":
+                return sorted.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+            case "title":
+                return sorted.sort((a, b) => a.title.localeCompare(b.title, "zh-CN"));
+            default:
+                return sorted.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+        }
+    }, [keyword, projects, sortMode]);
+
     if (hydrated && (mode === "new" || mode === "recent")) return <main className="flex h-full items-center justify-center bg-background text-sm text-stone-500">{t("canvas.opening")}</main>;
 
     return (
         <main className="h-full overflow-auto bg-background text-stone-950 dark:text-stone-100">
-            <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 py-10">
+            <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-10">
                 <header className="flex flex-wrap items-end justify-between gap-4 border-b border-stone-200 pb-6 dark:border-stone-800">
                     <div>
                         <p className="text-xs text-stone-500">{t("canvas.library")}</p>
@@ -100,14 +118,43 @@ export default function CanvasPage() {
                     </div>
                 </header>
 
+                {hydrated && projects.length ? (
+                    <div className="flex flex-wrap items-center gap-3">
+                        <Input
+                            className="w-64"
+                            allowClear
+                            size="small"
+                            prefix={<Search className="size-3.5 text-stone-400" />}
+                            placeholder={t("canvas.searchProjects")}
+                            value={keyword}
+                            onChange={(event) => setKeyword(event.target.value)}
+                        />
+                        <Select
+                            size="small"
+                            className="min-w-32"
+                            value={sortMode}
+                            onChange={(value) => setSortMode(value as ProjectSortMode)}
+                            options={[
+                                { value: "updated", label: t("canvas.sortUpdated") },
+                                { value: "created", label: t("canvas.sortCreated") },
+                                { value: "title", label: t("canvas.sortTitle") },
+                            ]}
+                        />
+                    </div>
+                ) : null}
+
                 {!hydrated ? (
                     <section className="flex min-h-[360px] items-center justify-center border-y border-stone-200 text-sm text-stone-500 dark:border-stone-800">{t("canvas.loading")}</section>
                 ) : projects.length ? (
-                    <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-                        {projects.map((project) => (
-                            <CanvasProjectCard key={project.id} project={project} />
-                        ))}
-                    </div>
+                    visibleProjects.length ? (
+                        <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                            {visibleProjects.map((project) => (
+                                <CanvasProjectCard key={project.id} project={project} />
+                            ))}
+                        </div>
+                    ) : (
+                        <section className="flex min-h-[240px] items-center justify-center border-y border-stone-200 text-sm text-stone-500 dark:border-stone-800">{t("canvas.noMatch")}</section>
+                    )
                 ) : (
                     <section className="flex min-h-[360px] flex-col items-center justify-center border-y border-stone-200 text-center dark:border-stone-800">
                         <h2 className="text-xl font-medium">{t("canvas.empty")}</h2>

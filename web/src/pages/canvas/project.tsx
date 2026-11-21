@@ -240,6 +240,7 @@ function InfiniteCanvasPage() {
     const [assetPickerOpen, setAssetPickerOpen] = useState(false);
     const [missingMediaOpen, setMissingMediaOpen] = useState(false);
     const [projectLoaded, setProjectLoaded] = useState(false);
+    const [saveState, setSaveState] = useState<"saved" | "saving">("saved");
     const [toolbarNodeId, setToolbarNodeId] = useState<string | null>(null);
     const [nodeImageSettingsOpen, setNodeImageSettingsOpen] = useState(false);
     const [dialogNodeId, setDialogNodeId] = useState<string | null>(null);
@@ -452,7 +453,10 @@ function InfiniteCanvasPage() {
 
     useEffect(() => {
         if (!projectLoaded || historyPausedRef.current) return;
+        setSaveState("saving");
         updateProject(projectId, { nodes, connections, chatSessions, activeChatId, backgroundMode, showImageInfo });
+        const timer = window.setTimeout(() => setSaveState("saved"), 600);
+        return () => window.clearTimeout(timer);
     }, [activeChatId, backgroundMode, chatSessions, connections, nodes, projectId, projectLoaded, showImageInfo, updateProject]);
 
     useEffect(() => {
@@ -3033,6 +3037,7 @@ function InfiniteCanvasPage() {
                     onFocusTask={focusNode}
                     missingMediaCount={missingMedia.length}
                     onOpenMissingMedia={() => setMissingMediaOpen(true)}
+                    saveState={saveState}
                 />
 
                 <InfiniteCanvas

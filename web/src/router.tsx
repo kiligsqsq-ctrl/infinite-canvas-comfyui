@@ -1,20 +1,26 @@
+import { lazy, Suspense } from "react";
 import { createBrowserRouter, Outlet } from "react-router-dom";
 
 import { AnalyticsTracker } from "@/components/layout/analytics-tracker";
 import UserLayout from "@/layouts/user-layout";
-import AssetsPage from "@/pages/assets";
-import CanvasPage from "@/pages/canvas";
-import CanvasProjectPage from "@/pages/canvas/project";
-import ConfigPage from "@/pages/config";
-import HomePage from "@/pages/home";
-import NotFound from "@/pages/not-found";
+
+const HomePage = lazy(() => import("@/pages/home"));
+const AssetsPage = lazy(() => import("@/pages/assets"));
+const CanvasPage = lazy(() => import("@/pages/canvas"));
+const CanvasProjectPage = lazy(() => import("@/pages/canvas/project"));
+const ConfigPage = lazy(() => import("@/pages/config"));
+const NotFound = lazy(() => import("@/pages/not-found"));
+
+const RouteFallback = () => <main className="flex h-full items-center justify-center bg-background text-sm text-stone-500">Loading…</main>;
 
 export const router = createBrowserRouter([
     {
         element: (
             <UserLayout>
                 <AnalyticsTracker />
-                <Outlet />
+                <Suspense fallback={<RouteFallback />}>
+                    <Outlet />
+                </Suspense>
             </UserLayout>
         ),
         children: [
@@ -25,5 +31,12 @@ export const router = createBrowserRouter([
             { path: "/config", element: <ConfigPage /> },
         ],
     },
-    { path: "*", element: <NotFound /> },
+    {
+        path: "*",
+        element: (
+            <Suspense fallback={<RouteFallback />}>
+                <NotFound />
+            </Suspense>
+        ),
+    },
 ]);

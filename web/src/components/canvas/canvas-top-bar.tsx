@@ -6,8 +6,10 @@ import { useNavigate } from "react-router-dom";
 
 import { UserStatusActions } from "@/components/layout/user-status-actions";
 import { CanvasGenerationTaskCenter } from "@/components/canvas/canvas-generation-task-center";
+import { testChannelConnection } from "@/services/api/channel";
 import { canvasThemes } from "@/lib/canvas-theme";
 import { useCanvasStore } from "@/stores/canvas/use-canvas-store";
+import { useConfigStore } from "@/stores/use-config-store";
 import { useCanvasSidePanelStore } from "@/stores/use-canvas-side-panel-store";
 import { useThemeStore } from "@/stores/use-theme-store";
 
@@ -36,6 +38,7 @@ export function CanvasTopBar({
     onFocusTask,
     missingMediaCount,
     onOpenMissingMedia,
+    saveState = "saved",
 }: {
     title: string;
     titleDraft: string;
@@ -61,6 +64,7 @@ export function CanvasTopBar({
     onFocusTask: (nodeId: string) => void;
     missingMediaCount: number;
     onOpenMissingMedia: () => void;
+    saveState?: "saving" | "saved";
 }) {
     const colorTheme = useThemeStore((state) => state.theme);
     const { t } = useTranslation();
@@ -68,6 +72,34 @@ export function CanvasTopBar({
     const navigate = useNavigate();
     const projects = useCanvasStore((state) => state.projects);
     const otherProjects = projects.filter((project) => project.id !== projectId);
+    const channels = useConfigStore((state) => state.config.channels);
+    const comfyChannel = channels.find((channel) => channel.serviceType === "comfyui");
+    const [comfyStatus, setComfyStatus] = useState<"none" | "checking" | "online" | "offline">(comfyChannel ? "checking" : "none");
+    useEffect(() => {
+        if (!comfyChannel) {
+            setComfyStatus("none");
+            return;
+        }
+        let active = true;
+        const check = async () => {
+            setComfyStatus((current) => (current === "online" ? current : "checking"));
+            try {
+                await testChannelConnection(comfyChannel);
+                if (active) setComfyStatus("online");
+            } catch {
+                if (active) setComfyStatus("offline");
+            }
+        };
+        void check();
+        const timer = window.setInterval(() => void check(), 60_000);
+        return () => {
+            active = false;
+            window.clearInterval(timer);
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [comfyChannel?.id, comfyChannel?.baseUrl]);
+    const comfyColor = comfyStatus === "online" ? "#22c55e" : comfyStatus === "offline" ? "#ef4444" : comfyStatus === "checking" ? "#f59e0b" : "#94a3b8";
+    const comfyLabel = comfyStatus === "online" ? t("canvas.comfyOnline") : comfyStatus === "offline" ? t("canvas.comfyOffline") : comfyStatus === "checking" ? t("canvas.comfyChecking") : t("canvas.comfyNone");
     const shortcutGroups = [
         {
             title: t("canvas.shortcut.groupCanvas"),
@@ -205,6 +237,9 @@ export function CanvasTopBar({
                 </div>
 
                 <div className="pointer-events-auto flex items-center gap-1.5">
+                    <span className="hidden text-xs sm:inline" style={{ color: theme.node.muted }}>
+                        {saveState === "saving" ? t("canvas.saving") : t("canvas.saved")}
+                    </span>
                     <CanvasGenerationTaskCenter projectId={projectId} onCancel={onCancelTask} onFocus={onFocusTask} />
                     {missingMediaCount ? (
                         <Tooltip title={t("canvas.missingMedia.title")}>
@@ -214,6 +249,10 @@ export function CanvasTopBar({
                         </Tooltip>
                     ) : null}
                     <UserStatusActions variant="canvas" onOpenShortcuts={() => setShortcutsOpen(true)} onOpenPlugins={onOpenPlugins} />
+                    <button type="button" onClick={() => navigate("/config")} className="flex items-center gap-1.5 rounded-full px-1.5 py-1 text-xs transition hover:bg-black/5 dark:hover:bg-white/10" title={t("canvas.comfyStatusHint")} style={{ color: theme.node.muted }}>
+                        <span className="size-2 shrink-0 rounded-full" style={{ background: comfyColor }} />
+                        <span className="hidden sm:inline">{comfyLabel}</span>
+                    </button>
                 </div>
             </div>
             <Modal title={t("canvas.shortcuts")} open={shortcutsOpen} onCancel={() => setShortcutsOpen(false)} footer={null} centered width={640}>
