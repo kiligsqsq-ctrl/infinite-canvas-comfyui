@@ -50,14 +50,6 @@
 - Windows 桌面版：GitHub Release 提供独立安装程序，并通过同一仓库接收后续版本更新。
 - 本地保存：画布、素材和渠道配置默认保存在当前浏览器中。
 
-## 尚未完成
-
-当前画布、ComfyUI 工作流接入和本轮计划功能均已写入代码，仍需要按[待测试清单](docs/content/docs/progress/pending-test.zh-CN.mdx)进行实际使用验证。后续开发项目记录在 [TODO](docs/content/docs/progress/todo.zh-CN.mdx)，目前主要是：
-
-- 取得可信证书后为 Windows 安装包增加代码签名，并在 Windows 发布链路稳定后评估 macOS 与 Linux 版本。
-- 等待 `@ant-design/pro-components` 3.x 提供兼容的上游修复后，移除其语法高亮依赖链剩余的中等级安全告警；当前不强制降级到不兼容的 2.x。
-- 补充 ComfyUI 实机出片验证（动态参考、取消、参数等）。
-
 ## 项目说明
 
 本项目由 `kiligsqsq-ctrl` 独立维护，源码、版本、发行包和自动更新均以本仓库为准。项目依法保留所使用 MIT 开源代码的版权与许可声明，具体内容见 [LICENSE](LICENSE)。
