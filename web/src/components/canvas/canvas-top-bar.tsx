@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Download, FileWarning, FolderOpen, Home, ImageDown, Images, Menu, PanelLeftClose, PanelLeftOpen, Plus, Redo2, Trash2, Undo2, Upload } from "lucide-react";
+import { Download, FileWarning, FolderOpen, Home, ImageDown, Images, Keyboard, Menu, PanelLeftClose, PanelLeftOpen, Plus, Redo2, Trash2, Undo2, Upload } from "lucide-react";
 import { Badge, Dropdown, Modal, Tooltip } from "antd";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -68,6 +68,53 @@ export function CanvasTopBar({
     const navigate = useNavigate();
     const projects = useCanvasStore((state) => state.projects);
     const otherProjects = projects.filter((project) => project.id !== projectId);
+    const shortcutGroups = [
+        {
+            title: t("canvas.shortcut.groupCanvas"),
+            items: [
+                { keys: ["Ctrl / Space", t("canvas.shortcut.drag")], value: t("canvas.shortcut.toggleTool") },
+                { keys: [t("canvas.shortcut.wheel")], value: t("canvas.shortcut.zoom") },
+                { keys: [t("canvas.shortcut.zoomSlider")], value: t("canvas.shortcut.preciseZoom") },
+                { keys: [t("canvas.shortcut.middleDrag")], value: t("canvas.shortcut.pan") },
+                { keys: [t("canvas.shortcut.pinch")], value: t("canvas.shortcut.zoom") },
+            ],
+        },
+        {
+            title: t("canvas.shortcut.groupSelect"),
+            items: [
+                { keys: [t("canvas.shortcut.drag")], value: t("canvas.shortcut.boxSelect") },
+                { keys: ["Shift / Cmd", t("canvas.shortcut.click")], value: t("canvas.shortcut.addSelection") },
+                { keys: ["Ctrl / Cmd", "A"], value: t("canvas.shortcut.selectAll") },
+                { keys: ["Ctrl / Cmd", "C / V"], value: t("canvas.shortcut.copyPaste") },
+                { keys: ["Ctrl / Cmd", "Z"], value: t("canvas.undo") },
+                { keys: ["Ctrl / Cmd", "Shift", "Z"], value: t("canvas.redo") },
+                { keys: ["Ctrl / Cmd", "Y"], value: t("canvas.redo") },
+                { keys: ["Delete / Backspace"], value: t("canvas.shortcut.delete") },
+                { keys: ["Esc"], value: t("canvas.shortcut.escape") },
+            ],
+        },
+        {
+            title: t("canvas.shortcut.groupNode"),
+            items: [
+                { keys: [t("canvas.shortcut.nudge")], value: t("canvas.shortcut.nudgeDesc") },
+                { keys: [t("canvas.shortcut.nudgeFast")], value: t("canvas.shortcut.nudgeFastDesc") },
+                { keys: [t("canvas.shortcut.altSnap")], value: t("canvas.shortcut.altSnapDesc") },
+                { keys: [t("canvas.shortcut.doubleCreate")], value: t("canvas.shortcut.createMenuDesc") },
+                { keys: [t("canvas.shortcut.nodeMenu")], value: t("canvas.shortcut.nodeMenuDesc") },
+                { keys: [t("canvas.shortcut.doubleImage")], value: t("canvas.shortcut.viewImageDesc") },
+                { keys: [t("canvas.shortcut.doubleText")], value: t("canvas.shortcut.editTextDesc") },
+                { keys: [t("canvas.shortcut.doubleTitle")], value: t("canvas.shortcut.renameDesc") },
+                { keys: [t("canvas.shortcut.groupFold")], value: t("canvas.shortcut.groupFoldDesc") },
+            ],
+        },
+        {
+            title: t("canvas.shortcut.groupMore"),
+            items: [
+                { keys: [t("canvas.shortcut.dropMedia")], value: t("canvas.shortcut.upload") },
+                { keys: [t("canvas.shortcut.dragCanvas")], value: t("canvas.shortcut.pan") },
+            ],
+        },
+    ];
     const titleRef = useRef<HTMLDivElement>(null);
     const [shortcutsOpen, setShortcutsOpen] = useState(false);
     const sidePanelOpen = useCanvasSidePanelStore((state) => state.panelOpen);
@@ -120,6 +167,8 @@ export function CanvasTopBar({
                                 { type: "divider" },
                                 { key: "undo", disabled: !canUndo, icon: <Undo2 className="size-4" />, label: <MenuLabel text={t("canvas.undo")} shortcut="⌘ Z" />, onClick: onUndo },
                                 { key: "redo", disabled: !canRedo, icon: <Redo2 className="size-4" />, label: <MenuLabel text={t("canvas.redo")} shortcut="⌘ ⇧ Z / ⌘ Y" />, onClick: onRedo },
+                                { type: "divider" },
+                                { key: "shortcuts", icon: <Keyboard className="size-4" />, label: t("canvas.shortcuts"), onClick: () => setShortcutsOpen(true) },
                             ],
                         }}
                     >
@@ -165,23 +214,31 @@ export function CanvasTopBar({
                         </Tooltip>
                     ) : null}
                     <UserStatusActions variant="canvas" onOpenShortcuts={() => setShortcutsOpen(true)} onOpenPlugins={onOpenPlugins} />
+                    <Tooltip title={t("canvas.shortcuts")}>
+                        <button
+                            type="button"
+                            onClick={() => setShortcutsOpen(true)}
+                            aria-label={t("canvas.shortcuts")}
+                            className="grid size-8 place-items-center rounded-full transition hover:bg-black/5 dark:hover:bg-white/10"
+                            style={{ color: theme.node.text }}
+                        >
+                            <Keyboard className="size-4" />
+                        </button>
+                    </Tooltip>
                 </div>
             </div>
-            <Modal title={t("canvas.shortcuts")} open={shortcutsOpen} onCancel={() => setShortcutsOpen(false)} footer={null} centered>
-                <div className="space-y-2 border-t pt-4 text-sm" style={{ borderColor: theme.node.stroke }}>
-                    <Shortcut keys={["Ctrl / Space", t("canvas.shortcut.drag")]} value={t("canvas.shortcut.toggleTool")} />
-                    <Shortcut keys={[t("canvas.shortcut.wheel")]} value={t("canvas.shortcut.zoom")} />
-                    <Shortcut keys={[t("canvas.shortcut.zoomSlider")]} value={t("canvas.shortcut.preciseZoom")} />
-                    <Shortcut keys={[t("canvas.shortcut.drag")]} value={t("canvas.shortcut.boxSelect")} />
-                    <Shortcut keys={["Shift / Cmd", t("canvas.shortcut.click")]} value={t("canvas.shortcut.addSelection")} />
-                    <Shortcut keys={["Ctrl / Cmd", "A"]} value={t("canvas.shortcut.selectAll")} />
-                    <Shortcut keys={["Ctrl / Cmd", "C / V"]} value={t("canvas.shortcut.copyPaste")} />
-                    <Shortcut keys={["Ctrl / Cmd", "Z"]} value={t("canvas.undo")} />
-                    <Shortcut keys={["Ctrl / Cmd", "Shift", "Z"]} value={t("canvas.redo")} />
-                    <Shortcut keys={["Ctrl / Cmd", "Y"]} value={t("canvas.redo")} />
-                    <Shortcut keys={["Delete / Backspace"]} value={t("canvas.shortcut.delete")} />
-                    <Shortcut keys={["Esc"]} value={t("canvas.shortcut.escape")} />
-                    <Shortcut keys={[t("canvas.shortcut.dropMedia")]} value={t("canvas.shortcut.upload")} />
+            <Modal title={t("canvas.shortcuts")} open={shortcutsOpen} onCancel={() => setShortcutsOpen(false)} footer={null} centered width={640}>
+                <div className="max-h-[70vh] space-y-5 overflow-y-auto border-t pt-4 text-sm" style={{ borderColor: theme.node.stroke }}>
+                    {shortcutGroups.map((group) => (
+                        <section key={group.title}>
+                            <div className="mb-2 text-xs font-medium uppercase tracking-wide opacity-50">{group.title}</div>
+                            <div className="space-y-1.5">
+                                {group.items.map((item, index) => (
+                                    <Shortcut key={`${group.title}-${index}`} keys={item.keys} value={item.value} />
+                                ))}
+                            </div>
+                        </section>
+                    ))}
                 </div>
             </Modal>
         </>
