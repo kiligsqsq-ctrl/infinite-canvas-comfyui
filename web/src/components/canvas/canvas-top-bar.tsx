@@ -214,17 +214,6 @@ export function CanvasTopBar({
                         </Tooltip>
                     ) : null}
                     <UserStatusActions variant="canvas" onOpenShortcuts={() => setShortcutsOpen(true)} onOpenPlugins={onOpenPlugins} />
-                    <Tooltip title={t("canvas.shortcuts")}>
-                        <button
-                            type="button"
-                            onClick={() => setShortcutsOpen(true)}
-                            aria-label={t("canvas.shortcuts")}
-                            className="grid size-8 place-items-center rounded-full transition hover:bg-black/5 dark:hover:bg-white/10"
-                            style={{ color: theme.node.text }}
-                        >
-                            <Keyboard className="size-4" />
-                        </button>
-                    </Tooltip>
                 </div>
             </div>
             <Modal title={t("canvas.shortcuts")} open={shortcutsOpen} onCancel={() => setShortcutsOpen(false)} footer={null} centered width={640}>
