@@ -474,7 +474,7 @@ export default {
         saved: "Settings saved",
         savedContinue: "Settings saved. Continue with your previous request.",
         channels: {
-            description: "Local services and cloud APIs can be used together. Assign image, video, text, or audio capabilities per model.",
+            description: "Assign image, video, text, or audio capabilities per model or workflow.",
             add: "Add API provider",
             localQuickTitle: "Quick local connections",
             localQuickDescription: "Choose a service already running on this computer to fill its common endpoint. You can still edit the endpoint and models.",
@@ -509,9 +509,12 @@ export default {
             connectionFailed: "Connection failed. Check the endpoint, service status, and CORS settings.",
             models: "Provider models",
             modelDescription: "{{count}} selected; assign a capability to each model.",
-            comfyModelDescription: "{{count}} selected. Use Upload API workflow beside a model to attach your own workflow exported from ComfyUI.",
+            comfyModelDescription: "{{count}} workflows added. Each workflow targets image, video, or audio; use Upload API workflow on the right to import your own ComfyUI JSON.",
             selectModels: "Select models",
             workflowReady: "API workflow connected",
+            workflows: "Workflows",
+            addWorkflow: "Add workflow",
+            defaultWorkflowName: "Workflow",
             workflow: "Upload API workflow",
             empty: "Select models to fetch or manually add models.",
             capabilities: {

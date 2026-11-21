@@ -1,6 +1,6 @@
 import { App, Button, Modal, Tabs, Tag } from "antd";
 import type { TFunction } from "i18next";
-import { Download, Pencil, Plus, Trash2, Upload } from "lucide-react";
+import { Download, Pencil, Trash2, Upload } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -49,12 +49,6 @@ export function AppConfigPanel({ showDoneButton = false, initialTab = "channels"
     };
 
     const updateChannels = (channels: ModelChannel[]) => saveConfig(withChannels(config, channels));
-
-    const addChannel = () => {
-        const channel = createModelChannel({ name: t("config.channels.numberedName", { count: config.channels.length + 1 }) });
-        updateChannels([...config.channels, channel]);
-        setEditingChannelId(channel.id);
-    };
 
     const addLocalChannel = (preset: LocalServicePreset) => {
         const existing = config.channels.find((channel) => channel.serviceType === preset.serviceType);
@@ -135,12 +129,7 @@ export function AppConfigPanel({ showDoneButton = false, initialTab = "channels"
                                     </div>
                                 </section>
                                 <ConfigLocalServiceStatus />
-                                <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                                    <div className="text-xs text-stone-500">{t("config.channels.description")}</div>
-                                    <Button type="primary" icon={<Plus className="size-4" />} onClick={addChannel}>
-                                        {t("config.channels.add")}
-                                    </Button>
-                                </div>
+                                <div className="mb-4 text-xs text-stone-500">{t("config.channels.description")}</div>
                                 <div className="space-y-2">
                                     {config.channels.map((channel) => (
                                         <div key={channel.id} className="flex items-center justify-between gap-3 rounded-lg border border-stone-200 px-4 py-3 dark:border-stone-800">

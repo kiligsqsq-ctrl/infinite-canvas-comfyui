@@ -474,7 +474,7 @@ export default {
         saved: "配置已保存",
         savedContinue: "配置已保存，请继续刚才的请求",
         channels: {
-            description: "本地服务和云端 API 可以同时使用；每个模型都能指定图片、视频、文本或音频能力。",
+            description: "每个模型或工作流都能指定图片、视频、文本或音频能力。",
             add: "新增 API 渠道",
             localQuickTitle: "本地服务快捷接入",
             localQuickDescription: "选择你电脑上已经运行的服务，会自动填好常用地址；地址和模型仍可继续修改。",
@@ -509,9 +509,12 @@ export default {
             connectionFailed: "连接失败，请检查服务地址、启动状态和 CORS 设置",
             models: "渠道模型",
             modelDescription: "已选 {{count}} 个；请为每个模型指定能力。",
-            comfyModelDescription: "已选 {{count}} 个；点击模型右侧的「上传 API 工作流」，即可使用你自己从 ComfyUI 导出的工作流。",
+            comfyModelDescription: "已添加 {{count}} 个工作流；每个工作流对应图片、视频或音频，点击右侧「上传 API 工作流」导入你自己从 ComfyUI 导出的 JSON。",
             selectModels: "选择模型",
             workflowReady: "API 工作流已连接",
+            workflows: "工作流",
+            addWorkflow: "添加工作流",
+            defaultWorkflowName: "工作流",
             workflow: "上传 API 工作流",
             empty: "点击「选择模型」拉取或手动增加模型。",
             capabilities: {

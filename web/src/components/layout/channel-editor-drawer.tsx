@@ -23,6 +23,7 @@ export function ChannelEditorDrawer({ open, channel, onSave, onClose }: { open: 
         { label: t("config.protocols.ark"), value: "ark" },
     ];
     const capabilityOptions: Array<{ label: string; value: ModelCapability }> = ["image", "video", "text", "audio"].map((value) => ({ label: t(`config.channelEditor.capabilities.${value}`), value: value as ModelCapability }));
+    const comfyCapabilityOptions: Array<{ label: string; value: ModelCapability }> = ["image", "video", "audio"].map((value) => ({ label: t(`config.channelEditor.capabilities.${value}`), value: value as ModelCapability }));
 
     useEffect(() => {
         if (open && channel) {
@@ -64,6 +65,35 @@ export function ChannelEditorDrawer({ open, channel, onSave, onClose }: { open: 
     const removeModel = (name: string) => {
         markWorkflowForDeletion(draft.models.find((model) => model.name === name)?.workflowId);
         setModels(draft.models.filter((model) => model.name !== name));
+    };
+
+    // ComfyUI workflows are added directly: pick a name and a media capability, then import the API workflow JSON.
+    const addWorkflow = () => {
+        const base = t("config.channelEditor.defaultWorkflowName");
+        let index = 1;
+        let name = `${base} ${index}`;
+        while (draft.models.some((model) => model.name === name)) {
+            index += 1;
+            name = `${base} ${index}`;
+        }
+        setModels([...draft.models, { name, capability: "image" }]);
+    };
+
+    const updateWorkflowName = (index: number, name: string) => {
+        setModels(draft.models.map((model, modelIndex) => (modelIndex === index ? { ...model, name } : model)));
+    };
+
+    const finalizeWorkflowName = (index: number) => {
+        const model = draft.models[index];
+        if (!model) return;
+        const base = model.name.trim() || t("config.channelEditor.defaultWorkflowName");
+        let name = base;
+        let suffix = 2;
+        while (draft.models.some((item, itemIndex) => itemIndex !== index && item.name === name)) {
+            name = `${base} ${suffix}`;
+            suffix += 1;
+        }
+        if (name !== model.name) updateWorkflowName(index, name);
     };
 
     const testConnection = async () => {
@@ -145,24 +175,41 @@ export function ChannelEditorDrawer({ open, channel, onSave, onClose }: { open: 
 
             <div className="mt-6 mb-3 flex flex-wrap items-center justify-between gap-2">
                 <div>
-                    <div className="text-sm font-semibold">{t("config.channelEditor.models")}</div>
-                    <div className="mt-0.5 text-xs text-stone-500">{t(draft.serviceType === "comfyui" ? "config.channelEditor.comfyModelDescription" : "config.channelEditor.modelDescription", { count: draft.models.length })}</div>
+                    <div className="text-sm font-semibold">{t(isComfyUi ? "config.channelEditor.workflows" : "config.channelEditor.models")}</div>
+                    <div className="mt-0.5 text-xs text-stone-500">{t(isComfyUi ? "config.channelEditor.comfyModelDescription" : "config.channelEditor.modelDescription", { count: draft.models.length })}</div>
                 </div>
-                <Button type="primary" icon={<ListPlus className="size-4" />} onClick={() => setSelectOpen(true)}>
-                    {t("config.channelEditor.selectModels")}
-                </Button>
+                {isComfyUi ? (
+                    <Button type="primary" icon={<ListPlus className="size-4" />} onClick={addWorkflow}>
+                        {t("config.channelEditor.addWorkflow")}
+                    </Button>
+                ) : (
+                    <Button type="primary" icon={<ListPlus className="size-4" />} onClick={() => setSelectOpen(true)}>
+                        {t("config.channelEditor.selectModels")}
+                    </Button>
+                )}
             </div>
 
             <div className="space-y-2 rounded-lg border border-stone-200 p-2 dark:border-stone-800">
                 {draft.models.length ? (
-                    draft.models.map((model) => (
-                        <div key={model.name} className="flex flex-wrap items-center gap-3 rounded-md px-2 py-1.5 hover:bg-stone-50 dark:hover:bg-stone-900/40">
-                            <span className="min-w-0 flex-1 truncate text-sm" title={model.name}>
-                                {model.name}
-                            </span>
+                    draft.models.map((model, index) => (
+                        <div key={isComfyUi ? `workflow-${index}` : model.name} className="flex flex-wrap items-center gap-3 rounded-md px-2 py-1.5 hover:bg-stone-50 dark:hover:bg-stone-900/40">
+                            {isComfyUi ? (
+                                <Input
+                                    className="min-w-0 flex-1"
+                                    size="small"
+                                    value={model.name}
+                                    onChange={(event) => updateWorkflowName(index, event.target.value)}
+                                    onBlur={() => finalizeWorkflowName(index)}
+                                    onPressEnter={(event) => (event.target as HTMLInputElement).blur()}
+                                />
+                            ) : (
+                                <span className="min-w-0 flex-1 truncate text-sm" title={model.name}>
+                                    {model.name}
+                                </span>
+                            )}
                             <div className="flex shrink-0 items-center gap-2">
-                                <Segmented size="small" value={model.capability} options={capabilityOptions} onChange={(value) => setCapability(model.name, value as ModelCapability)} />
-                                {draft.serviceType === "comfyui" && model.capability !== "text" ? (
+                                <Segmented size="small" value={model.capability} options={isComfyUi ? comfyCapabilityOptions : capabilityOptions} onChange={(value) => setCapability(model.name, value as ModelCapability)} />
+                                {isComfyUi ? (
                                     <Button size="small" icon={<FileUp className="size-3.5" />} type={model.workflowId ? "primary" : "default"} ghost={Boolean(model.workflowId)} onClick={() => setWorkflowTarget(model)}>
                                         {t(model.workflowId ? "config.channelEditor.workflowReady" : "config.channelEditor.workflow")}
                                     </Button>
