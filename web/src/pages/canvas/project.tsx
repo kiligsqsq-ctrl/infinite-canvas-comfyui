@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent as ReactChangeEvent, DragEvent as ReactDragEvent, MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Group, Video } from "lucide-react";
 import { saveAs } from "file-saver";
 import { useTranslation } from "react-i18next";
@@ -13,8 +13,9 @@ import { uploadImage } from "@/services/image-storage";
 import { uploadMediaFile } from "@/services/file-storage";
 import { nanoid } from "nanoid";
 import { getDataUrlByteSize, readImageMeta } from "@/lib/image-utils";
+import { assetContentHash, hashBlob } from "@/lib/file-hash";
 import { canvasThemes, type CanvasBackgroundMode } from "@/lib/canvas-theme";
-import { useAssetStore } from "@/stores/use-asset-store";
+import { useAssetStore, type Asset } from "@/stores/use-asset-store";
 import { useThemeStore } from "@/stores/use-theme-store";
 import { cropDataUrl, splitDataUrl, upscaleDataUrl } from "@/lib/canvas/canvas-image-data";
 import { fitNodeSize, nodeSizeFromRatio } from "@/lib/canvas/canvas-node-size";
@@ -165,7 +166,9 @@ function InfiniteCanvasPage() {
     const nodeRegistryVersion = useNodeRegistryVersion((state) => state.version);
     const params = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const projectId = params.id || "";
+    const handledAssetIdRef = useRef("");
     const containerRef = useRef<HTMLDivElement>(null);
     const imageInputRef = useRef<HTMLInputElement>(null);
     const relinkInputRef = useRef<HTMLInputElement>(null);
@@ -1291,6 +1294,14 @@ function InfiniteCanvasPage() {
 
     const createImageFileNode = useCallback(async (file: File, position: Position) => {
         const image = await uploadImage(file);
+        void archiveCanvasUpload(file, {
+            kind: "image",
+            title: file.name,
+            coverUrl: image.url,
+            tags: [],
+            source: "Canvas",
+            data: { dataUrl: image.url, storageKey: image.storageKey, width: image.width, height: image.height, bytes: image.bytes, mimeType: image.mimeType },
+        });
         const size = fitNodeSize(image.width, image.height);
         const id = `image-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
         const newNode: CanvasNodeData = {
@@ -1310,6 +1321,14 @@ function InfiniteCanvasPage() {
 
     const createVideoFileNode = useCallback(async (file: File, position: Position) => {
         const video = await uploadMediaFile(file, "video");
+        void archiveCanvasUpload(file, {
+            kind: "video",
+            title: file.name,
+            coverUrl: "",
+            tags: [],
+            source: "Canvas",
+            data: { url: video.url, storageKey: video.storageKey, width: video.width || 0, height: video.height || 0, bytes: video.bytes, mimeType: video.mimeType },
+        });
         const size = fitNodeSize(video.width || 1280, video.height || 720, VIDEO_NODE_MAX_WIDTH, VIDEO_NODE_MAX_HEIGHT);
         const id = `video-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
         setNodes((prev) => [
@@ -1330,6 +1349,14 @@ function InfiniteCanvasPage() {
 
     const createAudioFileNode = useCallback(async (file: File, position: Position) => {
         const audio = await uploadMediaFile(file, "audio");
+        void archiveCanvasUpload(file, {
+            kind: "audio",
+            title: file.name,
+            coverUrl: "",
+            tags: [],
+            source: "Canvas",
+            data: { url: audio.url, storageKey: audio.storageKey, bytes: audio.bytes, mimeType: audio.mimeType, durationMs: audio.durationMs },
+        });
         const spec = NODE_DEFAULT_SIZE[CanvasNodeType.Audio];
         const id = `audio-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
         setNodes((prev) => [
@@ -1602,10 +1629,29 @@ function InfiniteCanvasPage() {
 
     const saveNodeAsset = useCallback(
         async (node: CanvasNodeData) => {
+            const storageKey = node.metadata?.storageKey;
+            if (storageKey && useAssetStore.getState().assets.some((item) => "storageKey" in item.data && item.data.storageKey === storageKey)) {
+                message.info(t("canvas.projectPage.assetExists"));
+                return;
+            }
             if (node.type === CanvasNodeType.Text) {
                 const content = node.metadata?.content?.trim();
                 if (!content) return message.error(t("canvas.projectPage.noTextToSave"));
-                addAsset({ kind: "text", title: node.metadata?.prompt?.slice(0, 24) || t("canvas.projectPage.canvasText"), coverUrl: "", tags: [], source: "Canvas", data: { content }, metadata: { source: "canvas", nodeId: node.id } });
+                addAsset({ kind: "text", title: node.metadata?.prompt?.slice(0, 24) || t("canvas.projectPage.canvasText"), coverUrl: "", tags: [], source: "Canvas", data: { content }, metadata: { source: "canvas", nodeId: node.id, projectId } });
+                message.success(t("common.addedToAssets"));
+                return;
+            }
+            if (node.type === CanvasNodeType.Audio) {
+                if (!node.metadata?.content) return message.error(t("canvas.projectPage.noAudioToSave"));
+                addAsset({
+                    kind: "audio",
+                    title: node.metadata?.prompt?.slice(0, 24) || t("canvas.projectPage.canvasAudio"),
+                    coverUrl: "",
+                    tags: [],
+                    source: "Canvas",
+                    data: { url: node.metadata.content, storageKey: node.metadata.storageKey, bytes: node.metadata.bytes || 0, mimeType: node.metadata.mimeType || "audio/mpeg", durationMs: node.metadata.durationMs },
+                    metadata: { source: "canvas", nodeId: node.id, projectId, prompt: node.metadata?.prompt },
+                });
                 message.success(t("common.addedToAssets"));
                 return;
             }
@@ -1618,7 +1664,7 @@ function InfiniteCanvasPage() {
                     tags: [],
                     source: "Canvas",
                     data: { url: node.metadata.content, storageKey: node.metadata.storageKey, width: node.width, height: node.height, bytes: node.metadata.bytes || 0, mimeType: node.metadata.mimeType || "video/mp4" },
-                    metadata: { source: "canvas", nodeId: node.id, prompt: node.metadata?.prompt },
+                    metadata: { source: "canvas", nodeId: node.id, projectId, prompt: node.metadata?.prompt },
                 });
                 message.success(t("common.addedToAssets"));
                 return;
@@ -1639,11 +1685,11 @@ function InfiniteCanvasPage() {
                     bytes: node.metadata.bytes || getDataUrlByteSize(dataUrl),
                     mimeType: node.metadata.mimeType || "image/png",
                 },
-                metadata: { source: "canvas", nodeId: node.id, prompt: node.metadata?.prompt },
+                metadata: { source: "canvas", nodeId: node.id, projectId, prompt: node.metadata?.prompt },
             });
             message.success(t("common.addedToAssets"));
         },
-        [addAsset, message, t],
+        [addAsset, message, t, projectId],
     );
 
     const createImageReversePromptNodes = useCallback(
@@ -2720,6 +2766,23 @@ function InfiniteCanvasPage() {
                     },
                 ]);
                 setSelectedNodeIds(new Set([id]));
+            } else if (payload.kind === "audio") {
+                const spec = NODE_DEFAULT_SIZE[CanvasNodeType.Audio];
+                const center = screenToCanvas((containerRef.current?.getBoundingClientRect().left || 0) + size.width / 2, (containerRef.current?.getBoundingClientRect().top || 0) + size.height / 2);
+                const id = `audio-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+                setNodes((prev) => [
+                    ...prev,
+                    {
+                        id,
+                        type: CanvasNodeType.Audio,
+                        title: payload.title,
+                        position: { x: center.x - spec.width / 2, y: center.y - spec.height / 2 },
+                        width: spec.width,
+                        height: spec.height,
+                        metadata: audioMetadata({ url: payload.url, storageKey: payload.storageKey || "", bytes: 0, mimeType: "audio/mpeg" }),
+                    },
+                ]);
+                setSelectedNodeIds(new Set([id]));
             } else {
                 insertAssistantImage({ id: `asset-${Date.now()}`, prompt: payload.title, dataUrl: payload.dataUrl, storageKey: payload.storageKey });
             }
@@ -2727,6 +2790,18 @@ function InfiniteCanvasPage() {
         },
         [insertAssistantImage, insertAssistantText, screenToCanvas, size.height, size.width],
     );
+
+    // Insert an asset chosen from "My Assets" after the project finishes loading (?assetId=...).
+    useEffect(() => {
+        if (!projectLoaded) return;
+        const assetId = searchParams.get("assetId");
+        if (!assetId || handledAssetIdRef.current === assetId) return;
+        const asset = useAssetStore.getState().assets.find((item) => item.id === assetId);
+        if (!asset) return;
+        handledAssetIdRef.current = assetId;
+        handleAssetInsert(assetToInsertPayload(asset));
+        navigate(`/canvas/${projectId}`, { replace: true });
+    }, [handleAssetInsert, navigate, projectId, projectLoaded, searchParams]);
 
     // Memoize every callback and render function passed to CanvasNode.
     // CanvasNode uses React.memo, but new prop references would invalidate it on every render and rerender every node
@@ -3097,4 +3172,21 @@ function InfiniteCanvasPage() {
             </section>
         </main>
     );
+}
+
+type AssetPayload = Omit<Asset, "id" | "createdAt" | "updatedAt">;
+
+// Archive media uploaded onto the canvas into My Assets, skipping files that are already stored.
+async function archiveCanvasUpload(file: File, asset: AssetPayload) {
+    const hash = await hashBlob(file);
+    const store = useAssetStore.getState();
+    if (hash && store.assets.some((item) => assetContentHash(item) === hash)) return;
+    store.addAsset({ ...asset, metadata: { ...(asset.metadata || {}), source: "canvas-upload", contentHash: hash } } as AssetPayload);
+}
+
+function assetToInsertPayload(asset: Asset): InsertAssetPayload {
+    if (asset.kind === "text") return { kind: "text", content: asset.data.content, title: asset.title };
+    if (asset.kind === "video") return { kind: "video", url: asset.data.url, storageKey: asset.data.storageKey, title: asset.title, width: asset.data.width, height: asset.data.height };
+    if (asset.kind === "audio") return { kind: "audio", url: asset.data.url, storageKey: asset.data.storageKey, title: asset.title };
+    return { kind: "image", dataUrl: asset.data.dataUrl, storageKey: asset.data.storageKey, title: asset.title };
 }

@@ -72,12 +72,28 @@ export default {
         updated: "资产已更新",
         saved: "资产已保存",
         textCopied: "文本已复制",
+        uploading: "正在上传…",
+        uploaded: "已添加 {{count}} 个资产",
+        uploadFailed: "上传失败，请检查文件类型或重试",
+        dragHint: "松开即可上传图片、视频或音频",
+        duplicateSkipped: "跳过 {{count}} 个重复资产",
+        insertToCanvas: "插入画布",
+        insertTitle: "选择要插入的画布",
+        noCanvas: "还没有画布，先创建一个画布",
+        openSourceCanvas: "来源画布",
+        createdAt: "创建于 {{date}}",
+        metadataOnly: "视频/音频资产只支持编辑名称、标签等信息",
+        sort: { createdDesc: "最新创建", createdAsc: "最早创建", updatedDesc: "最近更新", titleAsc: "标题 A-Z" },
+        tagsFilter: { label: "标签", all: "全部标签" },
+        batch: { selected: "已选 {{count}} 个", selectAll: "全选当前页", clear: "取消选择", addTags: "批量加标签", export: "导出选中", delete: "删除选中", deleteTitle: "删除选中的资产？", deleteDescription: "将删除 {{count}} 个资产，无法恢复。", tagTitle: "为选中的 {{count}} 个资产添加标签", tagPlaceholder: "输入标签后回车" },
+        tagsAdded: "已为 {{count}} 个资产添加标签",
+        deletedCount: "已删除 {{count}} 个资产",
         noneToExport: "暂无资产可导出",
         imported: "已导入 {{count}} 个资产",
         importFailed: "导入失败，请选择有效的资产压缩包",
         deleted: "资产已删除",
         packageName: "我的资产.zip",
-        kinds: { text: "文本", image: "图片", video: "视频" },
+        kinds: { text: "文本", image: "图片", video: "视频", audio: "音频" },
         fields: {
             title: "标题",
             titleRequired: "请输入标题",
@@ -109,6 +125,7 @@ export default {
         copyText: "复制文本",
         downloadImage: "下载图片",
         downloadVideo: "下载视频",
+        downloadAudio: "下载音频",
     },
     notFound: {
         title: "页面不存在",
@@ -252,7 +269,7 @@ export default {
         },
         sidePanel: {
             canvas: "画布", assets: "资产", prompts: "提示词库", resize: "调整左侧面板宽度", elements: "画布元素", select: "选择", searchNodes: "搜索节点", focusNode: "定位到节点", preview: "放大预览", noNodes: "画布暂无节点", clearAll: "取消全选", selected: "已选 {{count}}", exporting: "正在导出选中元素…", exportName: "画布元素-{{count}}个", exported: "已导出 {{count}} 个元素", exportFailed: "导出失败，请重试",
-            addingAssets: "正在添加资产…", addedAssets: "已添加 {{count}} 个资产", mediaOnly: "仅支持图片或视频文件", addFailed: "添加失败，请重试", searchAssets: "搜索资产", add: "添加", noAssets: "暂无资产", inserted: "插入画布", removeAssetTitle: "移除该资产？", remove: "移除", removeAsset: "移除资产", assetRemoved: "资产已移除",
+            addingAssets: "正在添加资产…", addedAssets: "已添加 {{count}} 个资产", mediaOnly: "仅支持图片、视频或音频文件", addFailed: "添加失败，请重试", searchAssets: "搜索资产", add: "添加", noAssets: "暂无资产", inserted: "插入画布", removeAssetTitle: "移除该资产？", remove: "移除", removeAsset: "移除资产", assetRemoved: "资产已移除",
             searchPrompts: "搜索提示词", noPrompts: "暂无提示词", promptCopied: "已复制提示词", copyFailed: "复制失败", loadFailedRetry: "加载失败，点击重试", noMatchingPrompts: "无匹配提示词", sourceEmpty: "该来源暂无提示词", viewDetails: "查看详情",
             filter: { image: "图片", video: "视频", text: "文本", audio: "音频", config: "配置", group: "分组" },
         },
@@ -278,7 +295,7 @@ export default {
             parameter: { count: "数量", size: "尺寸 / 比例", quality: "质量 / 清晰度", duration: "时长", generateAudio: "生成声音", voice: "声音", format: "格式", speed: "语速", reasoning: "推理强度" },
         },
         projectPage: {
-            stopTitle: "停止生成？", stopDescription: "当前生成请求会被中断，已经生成完成的内容会保留。", stop: "停止", continue: "继续生成", configConnection: "配置节点之间不能连接", notFound: "未找到当前画布", exporting: "正在导出当前画布…", exported: "已导出当前画布", clipboardText: "剪切板文本", clipboardImageAdded: "已从剪切板添加图片", clipboardTextAdded: "已从剪切板添加文本", noTextToSave: "没有可保存的文本", canvasText: "画布文本", noVideoToSave: "没有可保存的视频", canvasVideo: "画布视频", noImageToSave: "没有可保存的图片", canvasImage: "画布图片", emptyReverse: "图片节点为空，无法反推提示词", reverseTitle: "反推提示词", reverseConfigTitle: "反推提示词配置", splitTitle: "{{name}} {{row}}-{{column}}", splitSuccess: "已切分为 {{count}} 个子节点", maskResult: "局部编辑结果", maskFailed: "局部修改失败", generationFailed: "生成失败", partialFailed: "部分图片生成失败", allFailed: "全部图片生成失败", retryPromptMissing: "找不到提示词，无法重试", referenceMissing: "参考图片已丢失，无法继续重试", emptyTextImage: "文本节点为空，无法生图", untitledCanvas: "未命名画布", imageDetails: "图片详情", clearTitle: "清空画布？", clear: "清空", clearDescription: "这会删除当前画布上的所有节点和连线。", reversePreset: "请根据参考图片反推一段适合用于 AI 生图的提示词。\n\n要求：\n1. 只输出提示词正文，不要解释。\n2. 覆盖主体、构图、风格、光线、色彩、材质、镜头和氛围。\n3. 尽量写成可直接用于生图模型的完整提示词。", maskPrompt: "只修改蒙版透明区域，其他区域保持不变。{{prompt}}", editTextPrompt: "请根据要求修改以下文本。\n\n原文：\n{{source}}\n\n修改要求：\n{{prompt}}"
+            stopTitle: "停止生成？", stopDescription: "当前生成请求会被中断，已经生成完成的内容会保留。", stop: "停止", continue: "继续生成", configConnection: "配置节点之间不能连接", notFound: "未找到当前画布", exporting: "正在导出当前画布…", exported: "已导出当前画布", clipboardText: "剪切板文本", clipboardImageAdded: "已从剪切板添加图片", clipboardTextAdded: "已从剪切板添加文本", noTextToSave: "没有可保存的文本", canvasText: "画布文本", noVideoToSave: "没有可保存的视频", canvasVideo: "画布视频", noAudioToSave: "没有可保存的音频", canvasAudio: "画布音频", assetExists: "这个素材已经在「我的资产」里了", noImageToSave: "没有可保存的图片", canvasImage: "画布图片", emptyReverse: "图片节点为空，无法反推提示词", reverseTitle: "反推提示词", reverseConfigTitle: "反推提示词配置", splitTitle: "{{name}} {{row}}-{{column}}", splitSuccess: "已切分为 {{count}} 个子节点", maskResult: "局部编辑结果", maskFailed: "局部修改失败", generationFailed: "生成失败", partialFailed: "部分图片生成失败", allFailed: "全部图片生成失败", retryPromptMissing: "找不到提示词，无法重试", referenceMissing: "参考图片已丢失，无法继续重试", emptyTextImage: "文本节点为空，无法生图", untitledCanvas: "未命名画布", imageDetails: "图片详情", clearTitle: "清空画布？", clear: "清空", clearDescription: "这会删除当前画布上的所有节点和连线。", reversePreset: "请根据参考图片反推一段适合用于 AI 生图的提示词。\n\n要求：\n1. 只输出提示词正文，不要解释。\n2. 覆盖主体、构图、风格、光线、色彩、材质、镜头和氛围。\n3. 尽量写成可直接用于生图模型的完整提示词。", maskPrompt: "只修改蒙版透明区域，其他区域保持不变。{{prompt}}", editTextPrompt: "请根据要求修改以下文本。\n\n原文：\n{{source}}\n\n修改要求：\n{{prompt}}"
         },
         reverseComposer: "参考图片：@[node:{{imageId}}]\n任务说明：@[node:{{textId}}]",
         editors: {

@@ -72,12 +72,28 @@ export default {
         updated: "Asset updated",
         saved: "Asset saved",
         textCopied: "Text copied",
+        uploading: "Uploading…",
+        uploaded: "Added {{count}} assets",
+        uploadFailed: "Upload failed. Check the file type and try again.",
+        dragHint: "Drop to upload images, videos, or audio",
+        duplicateSkipped: "Skipped {{count}} duplicate assets",
+        insertToCanvas: "Insert into canvas",
+        insertTitle: "Choose a canvas",
+        noCanvas: "No canvas yet. Create one first.",
+        openSourceCanvas: "Source canvas",
+        createdAt: "Created {{date}}",
+        metadataOnly: "Video and audio assets only support editing metadata.",
+        sort: { createdDesc: "Newest first", createdAsc: "Oldest first", updatedDesc: "Recently updated", titleAsc: "Title A-Z" },
+        tagsFilter: { label: "Tags", all: "All tags" },
+        batch: { selected: "{{count}} selected", selectAll: "Select current page", clear: "Clear selection", addTags: "Add tags", export: "Export selected", delete: "Delete selected", deleteTitle: "Delete selected assets?", deleteDescription: "{{count}} assets will be deleted permanently.", tagTitle: "Add tags to {{count}} selected assets", tagPlaceholder: "Type a tag and press Enter" },
+        tagsAdded: "Tags added to {{count}} assets",
+        deletedCount: "Deleted {{count}} assets",
         noneToExport: "No assets to export",
         imported: "Imported {{count}} assets",
         importFailed: "Import failed. Select a valid asset package.",
         deleted: "Asset deleted",
         packageName: "my-assets.zip",
-        kinds: { text: "Text", image: "Image", video: "Video" },
+        kinds: { text: "Text", image: "Image", video: "Video", audio: "Audio" },
         fields: {
             title: "Title",
             titleRequired: "Enter a title",
@@ -109,6 +125,7 @@ export default {
         copyText: "Copy text",
         downloadImage: "Download image",
         downloadVideo: "Download video",
+        downloadAudio: "Download audio",
     },
     notFound: {
         title: "Page not found",
@@ -252,7 +269,7 @@ export default {
         },
         sidePanel: {
             canvas: "Canvas", assets: "Assets", prompts: "Prompt Library", resize: "Resize left panel", elements: "Canvas elements", select: "Select", searchNodes: "Search nodes", focusNode: "Focus node", preview: "Large preview", noNodes: "No nodes on this canvas", clearAll: "Clear all", selected: "{{count}} selected", exporting: "Exporting selected elements…", exportName: "canvas-elements-{{count}}", exported: "Exported {{count}} elements", exportFailed: "Export failed. Try again.",
-            addingAssets: "Adding assets…", addedAssets: "Added {{count}} assets", mediaOnly: "Only image and video files are supported", addFailed: "Failed to add assets. Try again.", searchAssets: "Search assets", add: "Add", noAssets: "No assets", inserted: "Insert into canvas", removeAssetTitle: "Remove this asset?", remove: "Remove", removeAsset: "Remove asset", assetRemoved: "Asset removed",
+            addingAssets: "Adding assets…", addedAssets: "Added {{count}} assets", mediaOnly: "Only image, video, and audio files are supported", addFailed: "Failed to add assets. Try again.", searchAssets: "Search assets", add: "Add", noAssets: "No assets", inserted: "Insert into canvas", removeAssetTitle: "Remove this asset?", remove: "Remove", removeAsset: "Remove asset", assetRemoved: "Asset removed",
             searchPrompts: "Search prompts", noPrompts: "No prompts", promptCopied: "Prompt copied", copyFailed: "Copy failed", loadFailedRetry: "Load failed. Click to retry.", noMatchingPrompts: "No matching prompts", sourceEmpty: "No prompts from this source", viewDetails: "View details",
             filter: { image: "Image", video: "Video", text: "Text", audio: "Audio", config: "Configuration", group: "Group" },
         },
@@ -278,7 +295,7 @@ export default {
             parameter: { count: "Count", size: "Size / ratio", quality: "Quality", duration: "Duration", generateAudio: "Generate audio", voice: "Voice", format: "Format", speed: "Speed", reasoning: "Reasoning effort" },
         },
         projectPage: {
-            stopTitle: "Stop generation?", stopDescription: "The current request will be interrupted. Completed results will be kept.", stop: "Stop", continue: "Continue generating", configConnection: "Configuration nodes cannot be connected to each other", notFound: "Current canvas not found", exporting: "Exporting current canvas…", exported: "Current canvas exported", clipboardText: "Clipboard text", clipboardImageAdded: "Added image from clipboard", clipboardTextAdded: "Added text from clipboard", noTextToSave: "No text to save", canvasText: "Canvas text", noVideoToSave: "No video to save", canvasVideo: "Canvas video", noImageToSave: "No image to save", canvasImage: "Canvas image", emptyReverse: "The image node is empty, so its prompt cannot be inferred", reverseTitle: "Reverse prompt", reverseConfigTitle: "Reverse prompt configuration", splitTitle: "{{name}} {{row}}-{{column}}", splitSuccess: "Split into {{count}} child nodes", maskResult: "Local edit result", maskFailed: "Local edit failed", generationFailed: "Generation failed", partialFailed: "Some images failed to generate", allFailed: "All images failed to generate", retryPromptMissing: "No prompt found for retry", referenceMissing: "The reference image is missing, so retry cannot continue", emptyTextImage: "The text node is empty, so an image cannot be generated", untitledCanvas: "Untitled canvas", imageDetails: "Image details", clearTitle: "Clear canvas?", clear: "Clear", clearDescription: "This will delete every node and connection on the current canvas.", reversePreset: "Infer a prompt suitable for AI image generation from the reference image.\n\nRequirements:\n1. Output only the prompt, with no explanation.\n2. Cover the subject, composition, style, lighting, color, materials, lens, and atmosphere.\n3. Write a complete prompt that can be used directly with an image model.", maskPrompt: "Only modify the transparent masked area and keep everything else unchanged. {{prompt}}", editTextPrompt: "Revise the text according to the instructions.\n\nOriginal:\n{{source}}\n\nInstructions:\n{{prompt}}"
+            stopTitle: "Stop generation?", stopDescription: "The current request will be interrupted. Completed results will be kept.", stop: "Stop", continue: "Continue generating", configConnection: "Configuration nodes cannot be connected to each other", notFound: "Current canvas not found", exporting: "Exporting current canvas…", exported: "Current canvas exported", clipboardText: "Clipboard text", clipboardImageAdded: "Added image from clipboard", clipboardTextAdded: "Added text from clipboard", noTextToSave: "No text to save", canvasText: "Canvas text", noVideoToSave: "No video to save", canvasVideo: "Canvas video", noAudioToSave: "No audio to save", canvasAudio: "Canvas audio", assetExists: "This asset is already in My Assets", noImageToSave: "No image to save", canvasImage: "Canvas image", emptyReverse: "The image node is empty, so its prompt cannot be inferred", reverseTitle: "Reverse prompt", reverseConfigTitle: "Reverse prompt configuration", splitTitle: "{{name}} {{row}}-{{column}}", splitSuccess: "Split into {{count}} child nodes", maskResult: "Local edit result", maskFailed: "Local edit failed", generationFailed: "Generation failed", partialFailed: "Some images failed to generate", allFailed: "All images failed to generate", retryPromptMissing: "No prompt found for retry", referenceMissing: "The reference image is missing, so retry cannot continue", emptyTextImage: "The text node is empty, so an image cannot be generated", untitledCanvas: "Untitled canvas", imageDetails: "Image details", clearTitle: "Clear canvas?", clear: "Clear", clearDescription: "This will delete every node and connection on the current canvas.", reversePreset: "Infer a prompt suitable for AI image generation from the reference image.\n\nRequirements:\n1. Output only the prompt, with no explanation.\n2. Cover the subject, composition, style, lighting, color, materials, lens, and atmosphere.\n3. Write a complete prompt that can be used directly with an image model.", maskPrompt: "Only modify the transparent masked area and keep everything else unchanged. {{prompt}}", editTextPrompt: "Revise the text according to the instructions.\n\nOriginal:\n{{source}}\n\nInstructions:\n{{prompt}}"
         },
         reverseComposer: "Reference image: @[node:{{imageId}}]\nTask: @[node:{{textId}}]",
         editors: {

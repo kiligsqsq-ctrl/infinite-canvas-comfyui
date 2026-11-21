@@ -5,6 +5,7 @@ description: Implemented changes that still need manual verification
 
 # Pending Tests
 
+- My Assets: supports text, image, video, and audio; video cards show the first frame and allow metadata editing; multi-select supports batch delete/export/add-tags; tag filtering, sorting, creation time, drag-and-drop upload, and duplicate detection; asset cards can insert into a canvas and jump back to the source canvas; media uploaded onto a canvas should be archived into My Assets automatically.
 The current release needs manual verification in these areas:
 
 - Windows desktop release: pushing a tag that exactly matches `v<major>.<minor>.<patch>` and every version in `VERSION` plus the `desktop` and `web` package manifests and npm lockfiles should build the bundled web app and installer from a clean checkout on `windows-latest`, then publish the `.exe`, `.blockmap`, and `latest.yml` to the matching GitHub Release. A mismatched tag or one that is not the exact next value after the latest valid release tag must fail validation; an empty tag history must accept only v0.0.1. Installing v0.0.1 should launch without a separate Bun, Node.js, or Git setup; local and LAN ComfyUI endpoints should work without CORS flags while public targets must not use the desktop local proxy, and local HTML or scripts must not execute as same-origin canvas content; updating to the next allowed version should preserve local canvases and settings.
