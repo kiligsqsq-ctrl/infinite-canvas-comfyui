@@ -13,7 +13,4 @@ contextBridge.exposeInMainWorld("infiniteCanvasDesktop", Object.freeze({
         ipcRenderer.on(updateChannel, listener);
         return () => ipcRenderer.removeListener(updateChannel, listener);
     },
-    startAgent: () => ipcRenderer.invoke("desktop:start-agent"),
-    stopAgent: () => ipcRenderer.invoke("desktop:stop-agent"),
-    getAgentStatus: () => ipcRenderer.invoke("desktop:get-agent-status"),
 }));

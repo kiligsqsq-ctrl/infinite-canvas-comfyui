@@ -32,8 +32,6 @@
 
 当前核心画布、ComfyUI 工作流接入和本轮计划功能均已写入代码，仍需要按[待测试清单](docs/content/docs/progress/pending-test.zh-CN.mdx)进行实际使用验证。后续开发项目记录在 [TODO](docs/content/docs/progress/todo.zh-CN.mdx)，目前主要是：
 
-- 将 Claude Code CLI Adapter 升级为 Claude Agent SDK Adapter，并继续完善 Agent 工具队列。
-- 增加从网络检索安装 Skill、Skill 资源文件管理和可控的本地记忆功能。
 - 取得可信证书后为 Windows 安装包增加代码签名，并在 Windows 发布链路稳定后评估 macOS 与 Linux 版本。
 - 等待 `@ant-design/pro-components` 3.x 提供兼容的上游修复后，移除其语法高亮依赖链剩余的中等级安全告警；当前不强制降级到不兼容的 2.x。
 
@@ -43,7 +41,7 @@
 
 ## Windows 桌面版
 
-普通 Windows 用户可以在 [GitHub Releases](https://github.com/kiligsqsq-ctrl/infinite-canvas-comfyui/releases) 下载最新版本中以 `.exe` 结尾的安装程序。安装后从开始菜单启动即可，不需要另外安装 Git、Bun 或 Node.js。桌面包已包含画布前端和 Canvas Agent；进入右侧 Agent 面板可点击「启动内置 Agent」。ComfyUI 和模型文件仍由用户自行安装、启动并在画布中填写地址。
+普通 Windows 用户可以在 [GitHub Releases](https://github.com/kiligsqsq-ctrl/infinite-canvas-comfyui/releases) 下载最新版本中以 `.exe` 结尾的安装程序。安装后从开始菜单启动即可，不需要另外安装 Git、Bun 或 Node.js。ComfyUI 和模型文件仍由用户自行安装、启动并在画布中填写地址。
 
 应用会根据同一版本发布中的 `latest.yml` 和 `.blockmap` 检查更新。收到新版本提示后按应用提示下载并重启，画布和配置数据会继续保存在本机。桌面版连接本机或局域网 ComfyUI 时会使用只允许私有地址的内置代理，因此无需给 ComfyUI 增加浏览器 CORS 参数；源码安装仍按下文配置 CORS，并使用 Git 更新通道。
 
@@ -63,7 +61,7 @@ git push origin main
 git push origin "v$releaseVersion"
 ```
 
-首次发布已有的 `0.0.1` 时跳过 `bump`。推送格式严格为 `v<主版本>.<次版本>.<补丁版本>` 的 tag 后，Windows 工作流会校验根版本、桌面端、Web 与 Canvas Agent 的版本，并确认 tag 相对最近的合法版本严格递增；随后从干净检出构建桌面包，把 `.exe`、`.blockmap` 和 `latest.yml` 上传到对应的 GitHub Release。本地发版流程不需要手工构建安装包。
+首次发布已有的 `0.0.1` 时跳过 `bump`。推送格式严格为 `v<主版本>.<次版本>.<补丁版本>` 的 tag 后，Windows 工作流会校验根版本、桌面端与 Web 的版本，并确认 tag 相对最近的合法版本严格递增；随后从干净检出构建桌面包，把 `.exe`、`.blockmap` 和 `latest.yml` 上传到对应的 GitHub Release。本地发版流程不需要手工构建安装包。
 
 ## 源码运行前准备
 

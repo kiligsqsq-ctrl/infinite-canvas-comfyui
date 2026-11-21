@@ -4,7 +4,6 @@
   "defaultOpen": true,
   "pages": [
     "quick-start",
-    "codex-app-plugin",
     "features",
     "render",
     "docker",

@@ -15,7 +15,6 @@ const {
 const log = require("electron-log/main");
 const { autoUpdater } = require("electron-updater");
 
-const { startBundledAgent } = require("./agent.cjs");
 const { assertLocalTarget } = require("./local-network.cjs");
 
 const APP_ORIGIN = "app://infinite-canvas";
@@ -58,11 +57,8 @@ protocol.registerSchemesAsPrivileged([{
 }]);
 
 let mainWindow = null;
-let bundledAgent = null;
-let bundledAgentStart = null;
 let updateReady = false;
 let updateState = { status: "idle", currentVersion: app.getVersion() };
-let quitAfterAgentStops = false;
 
 const gotSingleInstanceLock = app.requestSingleInstanceLock();
 if (!gotSingleInstanceLock) app.quit();
@@ -72,15 +68,6 @@ app.on("second-instance", () => {
     if (mainWindow.isMinimized()) mainWindow.restore();
     mainWindow.show();
     mainWindow.focus();
-});
-
-app.on("before-quit", (event) => {
-    if (quitAfterAgentStops || (!bundledAgent && !bundledAgentStart)) return;
-    event.preventDefault();
-    void stopAgent().finally(() => {
-        quitAfterAgentStops = true;
-        app.quit();
-    });
 });
 
 app.whenReady().then(async () => {
@@ -259,19 +246,6 @@ function registerIpc() {
         await installDownloadedUpdate();
         return { installed: true };
     });
-    ipcMain.handle("desktop:start-agent", async (event) => {
-        validateIpcSender(event);
-        return startAgent();
-    });
-    ipcMain.handle("desktop:stop-agent", async (event) => {
-        validateIpcSender(event);
-        await stopAgent();
-        return { running: false };
-    });
-    ipcMain.handle("desktop:get-agent-status", (event) => {
-        validateIpcSender(event);
-        return bundledAgent?.isRunning() ? { running: true, url: bundledAgent.url, token: bundledAgent.token } : { running: false };
-    });
 }
 
 function configureUpdater() {
@@ -325,37 +299,12 @@ async function promptToInstall(version) {
 }
 
 async function installDownloadedUpdate() {
-    await stopAgent();
-    quitAfterAgentStops = true;
     autoUpdater.quitAndInstall(false, true);
 }
 
 function publishUpdate(patch) {
     updateState = { ...patch, currentVersion: app.getVersion() };
     for (const window of BrowserWindow.getAllWindows()) window.webContents.send(UPDATE_CHANNEL, updateState);
-}
-
-async function startAgent() {
-    if (bundledAgent && !bundledAgent.isRunning()) bundledAgent = null;
-    if (bundledAgent) return { url: bundledAgent.url, token: bundledAgent.token };
-    if (!bundledAgentStart) {
-        const resourcesPath = app.isPackaged ? process.resourcesPath : path.join(__dirname, "resources");
-        bundledAgentStart = startBundledAgent({ resourcesPath })
-            .then((agent) => (bundledAgent = agent))
-            .finally(() => { bundledAgentStart = null; });
-    }
-    const agent = await bundledAgentStart;
-    return { url: agent.url, token: agent.token };
-}
-
-async function stopAgent() {
-    const pending = bundledAgentStart;
-    if (pending) {
-        try { await pending; } catch { /* Startup already failed. */ }
-    }
-    const agent = bundledAgent;
-    bundledAgent = null;
-    if (agent) await agent.stop();
 }
 
 function validateIpcSender(event) {
@@ -408,39 +357,20 @@ function attachSmokeTest(window) {
     window.webContents.once("did-finish-load", () => {
         setTimeout(async () => {
             try {
-                const testAgent = process.env.INFINITE_CANVAS_SMOKE_AGENT === "1";
                 const result = await window.webContents.executeJavaScript(`(async () => {
                     const api = window.infiniteCanvasDesktop;
-                    const base = {
+                    return {
                         href: window.location.href,
                         title: document.title,
                         hasDesktopApi: Boolean(api?.isDesktop),
                         hasApp: Boolean(document.getElementById("root")?.childElementCount),
-                    };
-                    if (!${JSON.stringify(testAgent)}) return base;
-                    const agent = await api.startAgent();
-                    const response = await fetch(agent.url + "/health");
-                    const stateResponse = await fetch(agent.url + "/canvas/state?clientId=desktop-smoke", {
-                        method: "POST",
-                        headers: { "content-type": "application/json", "x-canvas-agent-token": agent.token },
-                        body: JSON.stringify({ nodes: [], connections: [] }),
-                    });
-                    await api.stopAgent();
-                    const restartedAgent = await api.startAgent();
-                    const restartedResponse = await fetch(restartedAgent.url + "/health");
-                    await api.stopAgent();
-                    return {
-                        ...base,
                         proxyIsolated: new URL("${LOCAL_PROXY_ORIGIN}/").origin !== window.location.origin,
-                        agentStatus: response.status,
-                        agentPostStatus: stateResponse.status,
-                        restartedAgentStatus: restartedResponse.status,
                     };
                 })()`);
                 const ok = result.href === `${APP_ORIGIN}/`
                     && result.hasDesktopApi
                     && result.hasApp
-                    && (!testAgent || (result.proxyIsolated && result.agentStatus === 200 && result.agentPostStatus === 200 && result.restartedAgentStatus === 200));
+                    && result.proxyIsolated;
                 clearTimeout(timeout);
                 finishSmokeTest(`DESKTOP_SMOKE_TEST ${JSON.stringify(result)}`, ok ? 0 : 2);
             } catch (error) {

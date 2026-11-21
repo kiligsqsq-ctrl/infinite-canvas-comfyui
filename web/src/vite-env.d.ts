@@ -12,20 +12,12 @@ type DesktopUpdateEvent = {
     message?: string;
 };
 
-type DesktopAgentConnection = {
-    url: string;
-    token: string;
-};
-
 interface InfiniteCanvasDesktopApi {
     readonly isDesktop: true;
     getAppInfo?: () => Promise<{ version: string; packaged: boolean; update: DesktopUpdateEvent | { status: "idle"; currentVersion: string } }>;
     checkForUpdates: () => Promise<DesktopUpdateEvent | void>;
     installUpdate?: () => Promise<{ installed: boolean; reason?: string }>;
     onUpdateStatus: (listener: (event: DesktopUpdateEvent) => void) => (() => void) | void;
-    startAgent: () => Promise<DesktopAgentConnection>;
-    stopAgent?: () => Promise<{ running: false }>;
-    getAgentStatus?: () => Promise<({ running: boolean } & Partial<DesktopAgentConnection>)>;
 }
 
 interface Window {

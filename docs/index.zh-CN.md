@@ -38,7 +38,3 @@
 
 - 当前画布项目和“我的素材”主要保存在浏览器本地，跨设备可自行配置 WebDAV 同步。
 - AI API Key 保存在浏览器本地，并由前端直接请求 OpenAI 兼容接口。
-
-## 原理说明
-
-- [本地 Codex 连接画布原理](/zh-CN/docs/development/local-codex-canvas)

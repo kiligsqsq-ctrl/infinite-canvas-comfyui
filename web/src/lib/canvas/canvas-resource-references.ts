@@ -31,10 +31,10 @@ export async function resolveCanvasReferenceImages(references: CanvasResourceRef
     const nodesById = new Map(nodes.map((node) => [node.id, node]));
     return Promise.all(references.filter((reference) => reference.kind === "image").map(async (reference) => {
         const node = nodesById.get(reference.nodeId);
-        if (!node) throw new Error(i18n.t("agent.composer.mentions.resourceMissing", { title: reference.title }));
+        if (!node) throw new Error(i18n.t("canvas.referenceResourceMissing", { title: reference.title }));
         const metadata = node.metadata;
         const dataUrl = await imageToDataUrl({ storageKey: metadata?.storageKey, url: reference.previewUrl });
-        if (!dataUrl.startsWith("data:image/")) throw new Error(i18n.t("agent.composer.mentions.imageReadFailed", { title: reference.title }));
+        if (!dataUrl.startsWith("data:image/")) throw new Error(i18n.t("canvas.referenceImageReadFailed", { title: reference.title }));
         const meta = metadata?.naturalWidth && metadata.naturalHeight
             ? { width: metadata.naturalWidth, height: metadata.naturalHeight, mimeType: metadata.mimeType || dataUrl.match(/^data:([^;]+)/)?.[1] || "image/png" }
             : await readImageMeta(dataUrl);

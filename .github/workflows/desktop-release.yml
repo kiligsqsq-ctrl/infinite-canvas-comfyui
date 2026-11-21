@@ -26,7 +26,6 @@ jobs:
           cache-dependency-path: |
             desktop/package-lock.json
             web/package-lock.json
-            canvas-agent/package-lock.json
 
       - name: Validate release version
         shell: pwsh
@@ -38,7 +37,7 @@ jobs:
         working-directory: desktop
         run: npm ci
 
-      - name: Build web, Canvas Agent, and Windows installer
+      - name: Build web and Windows installer
         working-directory: desktop
         run: npm run dist
 

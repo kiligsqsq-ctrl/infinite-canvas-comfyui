@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const versionPath = resolve(rootDir, "VERSION");
 const gitPath = resolve(rootDir, ".git");
-const packageFiles = ["desktop", "web", "canvas-agent"].map((directory) => ({
+const packageFiles = ["desktop", "web"].map((directory) => ({
   directory,
   packagePath: resolve(rootDir, directory, "package.json"),
   lockPath: resolve(rootDir, directory, "package-lock.json"),
@@ -141,7 +141,7 @@ async function check(expected) {
       throw new Error(`release ${expected} does not match VERSION ${version}`);
     }
   }
-  console.log(`Version ${version} is consistent across VERSION, desktop, web, and canvas-agent.`);
+  console.log(`Version ${version} is consistent across VERSION, desktop, and web.`);
 }
 
 async function bump(requested) {
@@ -162,7 +162,7 @@ async function bump(requested) {
     await writeJson(entry.packagePath, entry.packageJson.data, entry.packageJson.text);
     await writeJson(entry.lockPath, entry.packageLock.data, entry.packageLock.text);
   }
-  console.log(`Bumped ${state.version} -> ${next} across VERSION, desktop, web, and canvas-agent.`);
+  console.log(`Bumped ${state.version} -> ${next} across VERSION, desktop, and web.`);
 }
 
 const [command = "check", value, ...extra] = process.argv.slice(2);

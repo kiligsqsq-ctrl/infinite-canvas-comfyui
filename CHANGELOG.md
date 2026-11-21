@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+## v0.0.2
+
++ [调整] 移除本地 Canvas Agent：删除画布右侧 Agent 面板、canvas-agent 后端服务、桌面版内置 Agent 及其打包与版本校验配置，保留画布插件使用的画布指令集能力。
 + [调整] 移除未使用的 GitHub Pages 发布流程，避免仓库未启用 Pages 时产生无关的失败检查。
 
 ## v0.0.1
