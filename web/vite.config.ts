@@ -141,17 +141,4 @@ export default defineConfig({
         __APP_VERSION__: JSON.stringify(localVersion),
         __APP_RELEASES__: JSON.stringify(parseChangelog(localChangelog)),
     },
-    build: {
-        rollupOptions: {
-            output: {
-                manualChunks(id) {
-                    if (!id.includes("node_modules")) return undefined;
-                    if (id.includes("react") || id.includes("scheduler")) return "vendor-react";
-                    if (id.includes("antd") || id.includes("@ant-design") || id.includes("rc-")) return "vendor-antd";
-                    if (id.includes("i18next")) return "vendor-i18n";
-                    return "vendor";
-                },
-            },
-        },
-    },
 });
