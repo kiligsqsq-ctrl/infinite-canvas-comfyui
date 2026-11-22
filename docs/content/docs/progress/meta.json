@@ -4,7 +4,6 @@
   "defaultOpen": true,
   "pages": [
     "[Changelog](/docs/progress/changelog)",
-    "prompt-chip-input-plan",
     "pending-test",
     "todo"
   ]

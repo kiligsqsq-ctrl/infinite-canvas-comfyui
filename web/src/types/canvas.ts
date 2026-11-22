@@ -38,6 +38,13 @@ export type CanvasNodeImage = {
     missingMedia?: boolean;
 };
 
+export type CanvasNodeHistoryItem = {
+    content: string;
+    storageKey?: string;
+    mimeType?: string;
+    createdAt: string;
+};
+
 export type CanvasNodeMetadata = {
     content?: string;
     composerContent?: string;
@@ -74,6 +81,7 @@ export type CanvasNodeMetadata = {
     groupId?: string;
     locked?: boolean;
     collapsed?: boolean;
+    history?: CanvasNodeHistoryItem[];
     interactive?: boolean; // Plugin node interaction/move state; see CanvasNodeDefinition.interactionToggle.
     missingMedia?: boolean;
 };

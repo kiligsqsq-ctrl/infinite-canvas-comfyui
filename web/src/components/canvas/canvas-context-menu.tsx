@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import type { ReactNode } from "react";
-import { Lock, LockOpen, Plus, Trash2 } from "lucide-react";
+import { History, Lock, LockOpen, Plus, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { canvasThemes } from "@/lib/canvas-theme";
@@ -18,6 +18,8 @@ export function CanvasNodeContextMenu({
     locked = false,
     onAlign,
     canAlign = false,
+    hasHistory = false,
+    onOpenHistory,
 }: {
     menu: ContextMenuState;
     onClose: () => void;
@@ -27,6 +29,8 @@ export function CanvasNodeContextMenu({
     locked?: boolean;
     onAlign?: (mode: AlignMode) => void;
     canAlign?: boolean;
+    hasHistory?: boolean;
+    onOpenHistory?: () => void;
 }) {
     const { t } = useTranslation();
     const theme = canvasThemes[useThemeStore((state) => state.theme)];
@@ -49,6 +53,7 @@ export function CanvasNodeContextMenu({
         >
             {menu.type === "node" ? <MenuButton icon={<Plus className="size-4" />} label={t("canvas.controls.duplicate")} onClick={onDuplicate} /> : null}
             {menu.type === "node" ? <MenuButton icon={locked ? <LockOpen className="size-4" /> : <Lock className="size-4" />} label={t(locked ? "canvas.controls.unlock" : "canvas.controls.lock")} onClick={onToggleLock} /> : null}
+            {menu.type === "node" && hasHistory ? <MenuButton icon={<History className="size-4" />} label={t("canvas.controls.history")} onClick={onOpenHistory} /> : null}
             {menu.type === "node" && canAlign ? (
                 <div className="mt-1 border-t px-3 py-2" style={{ borderColor: theme.toolbar.border }}>
                     <div className="mb-1 text-[11px]" style={{ color: theme.node.muted }}>

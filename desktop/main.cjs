@@ -124,7 +124,25 @@ function createWindow() {
         if (isSafeExternalUrl(url)) void shell.openExternal(url);
     });
     if (process.env.INFINITE_CANVAS_SMOKE_TEST === "1") attachSmokeTest(mainWindow);
-    void mainWindow.loadURL(`${APP_ORIGIN}/`);
+    // Show a readable error page instead of a blank window when the app page cannot load.
+    mainWindow.webContents.on("did-fail-load", (_event, errorCode, errorDescription) => {
+        if (process.env.INFINITE_CANVAS_SMOKE_TEST === "1" || !mainWindow) return;
+        log.error(`App page failed to load (${errorCode}): ${errorDescription}`);
+        const failureHtml = `<!doctype html><html><head><meta charset="utf-8"><title>无限画布</title><style>
+body{margin:0;font-family:system-ui,"Microsoft YaHei",sans-serif;background:#0b0b0c;color:#e7e5df;display:flex;align-items:center;justify-content:center;height:100vh}
+main{max-width:520px;padding:32px;text-align:center}
+h1{font-size:20px;margin:0 0 12px}p{color:#a8a29e;font-size:13px;line-height:1.7;margin:0 0 20px}
+.row{display:flex;gap:12px;justify-content:center}
+button{cursor:pointer;border-radius:10px;border:1px solid #44403c;background:#1c1917;color:#e7e5df;padding:9px 18px;font-size:13px}
+button:hover{background:#292524}
+</style></head><body><main>
+<h1>页面加载失败</h1>
+<p>应用页面无法加载（${errorCode}：${errorDescription}）。请点击重试；如果仍然失败，请关闭应用后重新启动。</p>
+<div class="row"><button onclick="location.href='app://infinite-canvas/'">重试</button><button onclick="window.close()">退出</button></div>
+</main></body></html>`;
+        void mainWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(failureHtml)}`).catch((error) => log.error("Failed to show the load failure page", error));
+    });
+    void mainWindow.loadURL(`${APP_ORIGIN}/`).catch((error) => log.error("Failed to load the app page", error));
 }
 
 async function handleAppRequest(request) {

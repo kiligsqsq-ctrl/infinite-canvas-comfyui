@@ -23,7 +23,7 @@ export default function IndexPage() {
 
     return (
         <main className="relative h-full overflow-hidden bg-[#05070d] text-white">
-            <div className="pointer-events-none absolute inset-0 scale-[1.02] bg-cover bg-center" style={{ backgroundImage: "url('/brand/home-hero.png')" }} />
+            <div className="pointer-events-none absolute inset-0 scale-[1.02] bg-cover bg-center" style={{ backgroundImage: "url('/brand/home-hero.webp')" }} />
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(5,7,13,.06)_0%,rgba(5,7,13,.12)_42%,rgba(5,7,13,.38)_100%)]" />
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/5 via-transparent to-black/30" />
             <section className="relative mx-auto h-full max-w-7xl overflow-hidden px-6">

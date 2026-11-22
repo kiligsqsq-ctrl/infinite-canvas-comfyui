@@ -26,6 +26,7 @@ import { CanvasConfigComposer } from "@/components/canvas/canvas-config-composer
 import { CanvasConfigNodePanel } from "@/components/canvas/canvas-config-node-panel";
 import { CanvasGenerationPreviewModal } from "@/components/canvas/canvas-generation-preview-modal";
 import { CanvasMissingMediaModal, findMissingCanvasMedia, type MissingCanvasMedia } from "@/components/canvas/canvas-missing-media-modal";
+import { CanvasNodeHistoryModal } from "@/components/canvas/canvas-node-history-modal";
 import { CanvasNodeContextMenu } from "@/components/canvas/canvas-context-menu";
 import { CanvasNodeAngleDialog, type CanvasImageAngleParams } from "@/components/canvas/canvas-node-angle-dialog";
 import { CanvasNodeCropDialog, type CanvasImageCropRect } from "@/components/canvas/canvas-node-crop-dialog";
@@ -81,6 +82,7 @@ import {
     type CanvasAssistantSession,
     type CanvasConnection,
     type CanvasNodeData,
+    type CanvasNodeHistoryItem,
     type CanvasNodeImage,
     type CanvasNodeMetadata,
     type CanvasNodeTypeId,
@@ -232,6 +234,7 @@ function InfiniteCanvasPage() {
     const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
     const [nodeCreatePosition, setNodeCreatePosition] = useState<Position | null>(null);
     const [alignmentGuides, setAlignmentGuides] = useState<{ x: number[]; y: number[] }>({ x: [], y: [] });
+    const [historyNodeId, setHistoryNodeId] = useState<string | null>(null);
     const [runningNodeId, setRunningNodeId] = useState<string | null>(null);
     const [isMiniMapOpen, setIsMiniMapOpen] = useState(false);
     const [backgroundMode, setBackgroundMode] = useState<CanvasBackgroundMode>("lines");
@@ -1078,6 +1081,32 @@ function InfiniteCanvasPage() {
     const toggleGroupCollapsed = useCallback((groupId: string) => {
         setNodes((prev) => prev.map((node) => (node.id === groupId ? { ...node, metadata: { ...node.metadata, collapsed: !node.metadata?.collapsed } } : node)));
     }, []);
+
+    const restoreHistoryItem = useCallback(
+        (item: CanvasNodeHistoryItem) => {
+            if (!historyNodeId) return;
+            setNodes((prev) =>
+                prev.map((node) => {
+                    if (node.id !== historyNodeId) return node;
+                    const current = node.metadata?.content;
+                    return {
+                        ...node,
+                        metadata: {
+                            ...node.metadata,
+                            content: item.content,
+                            storageKey: item.storageKey,
+                            mimeType: item.mimeType,
+                            history: [
+                                ...(current ? [{ content: current, storageKey: node.metadata?.storageKey, mimeType: node.metadata?.mimeType, createdAt: new Date().toISOString() }] : []),
+                                ...(node.metadata?.history || []).filter((entry) => entry !== item),
+                            ].slice(-8),
+                        },
+                    };
+                }),
+            );
+        },
+        [historyNodeId],
+    );
 
     const createAndOpenProject = useCallback(() => {
         const id = createProject(t("canvas.defaultTitle", { count: useCanvasStore.getState().projects.length + 1 }));
@@ -2764,6 +2793,12 @@ function InfiniteCanvasPage() {
                                 ...(makePrimary ? imageMetadata(uploadedImage) : { status: NODE_STATUS_SUCCESS }),
                                 images: item.metadata?.images?.map((current) => (current.id === retryImage.id ? retryImage : current)),
                                 primaryImageId: makePrimary ? retryImage.id : item.metadata?.primaryImageId,
+                                history: [
+                                    ...(item.metadata?.history || []),
+                                    ...(makePrimary && item.metadata?.content
+                                        ? [{ content: item.metadata.content, storageKey: item.metadata.storageKey, mimeType: item.metadata.mimeType, createdAt: new Date().toISOString() }]
+                                        : []),
+                                ].slice(-8),
                                 prompt,
                                 ...generationMetadata,
                             },
@@ -3253,6 +3288,13 @@ function InfiniteCanvasPage() {
                             alignSelectedNodes(mode);
                             setContextMenu(null);
                         }}
+                        hasHistory={contextMenu.type === "node" ? Boolean(nodeById.get(contextMenu.nodeId)?.metadata?.history?.length) : false}
+                        onOpenHistory={() => {
+                            if (contextMenu.type === "node") {
+                                setHistoryNodeId(contextMenu.nodeId);
+                                setContextMenu(null);
+                            }
+                        }}
                     />
                 ) : null}
 
@@ -3260,6 +3302,7 @@ function InfiniteCanvasPage() {
                 <input ref={relinkInputRef} type="file" className="hidden" onChange={handleRelinkInputChange} />
 
                 <CanvasMissingMediaModal open={missingMediaOpen} items={missingMedia} onRelink={requestMissingMediaRelink} onClose={() => setMissingMediaOpen(false)} />
+                <CanvasNodeHistoryModal node={historyNodeId ? nodeById.get(historyNodeId) || null : null} onRestore={restoreHistoryItem} onClose={() => setHistoryNodeId(null)} />
 
                 <CanvasNodeInfoModal node={infoNode} open={Boolean(infoNode)} onClose={() => setInfoNodeId(null)} />
                 <CanvasPluginManagerModal open={pluginManagerOpen} onClose={() => setPluginManagerOpen(false)} />

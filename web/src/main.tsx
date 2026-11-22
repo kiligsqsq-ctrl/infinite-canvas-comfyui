@@ -4,6 +4,7 @@ import "antd/dist/reset.css";
 import "./styles/globals.css";
 import { RouterProvider } from "react-router-dom";
 
+import { AppErrorBoundary } from "@/components/layout/app-error-boundary";
 import { AppProviders } from "@/components/layout/app-providers";
 import "@/i18n";
 import { initAnalytics } from "@/lib/analytics";
@@ -18,7 +19,9 @@ document.body.style.fontFamily = '"SF Pro Display","SF Pro Text","PingFang SC","
 createRoot(document.getElementById("root")!).render(
     <React.StrictMode>
         <AppProviders>
-            <RouterProvider router={router} />
+            <AppErrorBoundary>
+                <RouterProvider router={router} />
+            </AppErrorBoundary>
         </AppProviders>
     </React.StrictMode>,
 );

@@ -1,8 +1,10 @@
-import { Check, Download, Pencil, Trash2, X } from "lucide-react";
+import { Check, Download, Image as ImageIcon, Pencil, Trash2, X } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button, Input } from "antd";
 import { useTranslation } from "react-i18next";
 
+import { resolveImageUrl } from "@/services/image-storage";
 import { useCanvasStore, type CanvasProject } from "@/stores/canvas/use-canvas-store";
 import { useCanvasUiStore } from "@/stores/canvas/use-canvas-ui-store";
 import { exportCanvasProjects } from "@/lib/canvas/canvas-export";
@@ -28,8 +30,46 @@ export function CanvasProjectCard({ project }: { project: CanvasProject }) {
         stopEditing();
     };
 
+    const imageNode = project.nodes.find((node) => node.type === "image" && (node.metadata?.content || node.metadata?.storageKey));
+    const videoNode = project.nodes.find((node) => node.type === "video" && node.metadata?.content);
+    const [cover, setCover] = useState("");
+
+    useEffect(() => {
+        let active = true;
+        const content = imageNode?.metadata?.content || "";
+        if (!imageNode) {
+            setCover("");
+            return () => {
+                active = false;
+            };
+        }
+        if (content.startsWith("data:") || content.startsWith("blob:")) {
+            setCover(content);
+            return () => {
+                active = false;
+            };
+        }
+        void resolveImageUrl(imageNode.metadata?.storageKey, content).then((url) => {
+            if (active) setCover(url);
+        });
+        return () => {
+            active = false;
+        };
+    }, [imageNode?.id, imageNode?.metadata?.content, imageNode?.metadata?.storageKey]);
+
     return (
-        <article className="group flex min-h-44 cursor-pointer flex-col justify-between rounded-2xl bg-[#f1eee8] p-5 transition hover:bg-[#ebe6dc] dark:bg-white/5 dark:hover:bg-white/10" onClick={() => !editing && open()}>
+        <article className="group flex min-h-44 cursor-pointer flex-col justify-between overflow-hidden rounded-2xl bg-[#f1eee8] p-5 transition hover:bg-[#ebe6dc] dark:bg-white/5 dark:hover:bg-white/10" onClick={() => !editing && open()}>
+            <div className="-mx-5 -mt-5 mb-4 h-36 overflow-hidden bg-stone-200/60 dark:bg-white/5">
+                {cover ? (
+                    <img src={cover} alt="" className="h-full w-full object-cover" />
+                ) : videoNode?.metadata?.content ? (
+                    <video src={videoNode.metadata.content} muted playsInline preload="metadata" className="h-full w-full object-cover" />
+                ) : (
+                    <div className="flex h-full items-center justify-center text-stone-400 dark:text-stone-500">
+                        <ImageIcon className="size-8" />
+                    </div>
+                )}
+            </div>
             <div className="flex items-start gap-3">
                 <input
                     type="checkbox"
