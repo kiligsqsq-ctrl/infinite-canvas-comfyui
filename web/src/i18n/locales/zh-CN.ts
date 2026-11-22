@@ -232,7 +232,7 @@ export default {
         nodeToolbar: { noPrompt: "暂无可复制的提示词", infoTitle: "查看节点信息", info: "信息", removeTitle: "移除节点", retryTitle: "重新生成", saveAsset: "存资产", downloadAudio: "下载音频", downloadVideo: "下载视频", downloadImage: "下载图片", editTextTitle: "编辑文本", editText: "编辑文字", decreaseFont: "减小字号", increaseFont: "增大字号", zoomOut: "缩小", zoomIn: "放大", uploadImage: "上传图片", replaceVideo: "替换视频", uploadVideo: "上传视频", replaceAudio: "替换音频", uploadAudio: "上传音频", nodeInfo: "节点信息", name: "名称", type: "类型", size: "尺寸", position: "位置", status: "状态", imageGroup: "图片组", imageSize: "图片大小" },
         configNode: { title: "生成配置", image: "生图", text: "文本", video: "视频", audio: "音频", prompt: "提示词", references: "参考图", videoReferences: "参考视频", audioReferences: "参考音频", items: "{{count}} 个", images: "{{count}} 张", compose: "组装提示词", preview: "检查", stop: "停止", generate: "开始生成" },
         taskCenter: {
-            title: "生成任务", clearFinished: "清除已结束", empty: "暂无生成任务", untitled: "生成任务", focus: "定位节点", cancel: "取消任务",
+            title: "生成任务", clearFinished: "清除已结束", empty: "暂无生成任务", untitled: "生成任务", focus: "定位节点", cancel: "取消任务", retry: "重试",
             status: { queued: "等待中", running: "运行中", completed: "已完成", failed: "失败", canceled: "已取消" },
         },
         missingMedia: {
@@ -264,6 +264,7 @@ export default {
         promptPanel: { video: "描述要生成的视频内容", audio: "描述要生成的音频内容", image: "描述要生成的图片内容", text: "请输入你想要生成的文本内容", editImage: "请输入你想要把这张图修改成什么", editText: "请输入你想要将本段文本修改成什么", expandEditor: "放大编辑", preview: "生成前检查", editorTitle: "编辑提示词", stopGeneration: "停止生成", generate: "生成", stop: "停止" },
         composer: { title: "组装提示词", description: "@ 引用已连接资产，发送前按当前连接重新编号", placeholder: "输入提示词，按 @ 引用连接的图片或文本", imagePreview: "引用图片预览", resources: { image: "图片{{index}}", video: "视频{{index}}", audio: "音频{{index}}", text: "文本{{index}}" } },
         controls: {
+            arrangeNodes: "自动整理节点",
             history: "生成历史",
             lock: "锁定节点",
             unlock: "解锁节点",

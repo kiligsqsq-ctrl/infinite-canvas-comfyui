@@ -1,6 +1,6 @@
 {
   "name": "infinite-canvas-comfyui-desktop",
-  "version": "0.1.5",
+  "version": "0.2.0",
   "private": true,
   "description": "无限画布 Windows 桌面客户端",
   "author": "kiligsqsq-ctrl",
@@ -12,6 +12,7 @@
     "prepare:resources": "npm run build:icon && npm run build:web",
     "start": "npm run prepare:resources && electron .",
     "test": "node --test test/*.test.cjs",
+    "smoke:web": "electron scripts/smoke-web.cjs",
     "pack": "npm run prepare:resources && electron-builder --dir --win --x64",
     "dist": "npm run prepare:resources && electron-builder --win nsis --x64 --publish never"
   },

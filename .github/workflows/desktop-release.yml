@@ -37,6 +37,26 @@ jobs:
         working-directory: desktop
         run: npm ci
 
+      - name: Install web dependencies
+        working-directory: web
+        run: npm ci --legacy-peer-deps
+
+      - name: Type check web
+        working-directory: web
+        run: npm run typecheck
+
+      - name: Run desktop unit tests
+        working-directory: desktop
+        run: npm test
+
+      - name: Build web app
+        working-directory: desktop
+        run: npm run build:web
+
+      - name: Smoke test built web app
+        working-directory: desktop
+        run: npm run smoke:web
+
       - name: Build web and Windows installer
         working-directory: desktop
         run: npm run dist

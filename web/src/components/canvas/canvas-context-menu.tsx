@@ -20,6 +20,8 @@ export function CanvasNodeContextMenu({
     canAlign = false,
     hasHistory = false,
     onOpenHistory,
+    canArrange = false,
+    onArrange,
 }: {
     menu: ContextMenuState;
     onClose: () => void;
@@ -31,6 +33,8 @@ export function CanvasNodeContextMenu({
     canAlign?: boolean;
     hasHistory?: boolean;
     onOpenHistory?: () => void;
+    canArrange?: boolean;
+    onArrange?: () => void;
 }) {
     const { t } = useTranslation();
     const theme = canvasThemes[useThemeStore((state) => state.theme)];
@@ -71,6 +75,11 @@ export function CanvasNodeContextMenu({
                         <AlignButton label={t("canvas.controls.distributeH")} onClick={() => onAlign?.("distribute-h")} theme={theme} />
                         <AlignButton label={t("canvas.controls.distributeV")} onClick={() => onAlign?.("distribute-v")} theme={theme} />
                     </div>
+                    {onArrange ? (
+                        <div className="mt-1">
+                            <AlignButton label={t("canvas.controls.arrangeNodes")} onClick={onArrange} theme={theme} />
+                        </div>
+                    ) : null}
                 </div>
             ) : null}
             <MenuButton icon={<Trash2 className="size-4" />} label={t("canvas.controls.delete")} onClick={onDelete} danger />

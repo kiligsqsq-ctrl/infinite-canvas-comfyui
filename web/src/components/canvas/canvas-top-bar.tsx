@@ -36,6 +36,7 @@ export function CanvasTopBar({
     projectId,
     onCancelTask,
     onFocusTask,
+    onRetryTask,
     missingMediaCount,
     onOpenMissingMedia,
     saveState = "saved",
@@ -62,6 +63,7 @@ export function CanvasTopBar({
     projectId: string;
     onCancelTask: (runningNodeId: string) => void;
     onFocusTask: (nodeId: string) => void;
+    onRetryTask?: (originNodeId: string) => void;
     missingMediaCount: number;
     onOpenMissingMedia: () => void;
     saveState?: "saving" | "saved";
@@ -240,7 +242,7 @@ export function CanvasTopBar({
                     <span className="hidden text-xs sm:inline" style={{ color: theme.node.muted }}>
                         {saveState === "saving" ? t("canvas.saving") : t("canvas.saved")}
                     </span>
-                    <CanvasGenerationTaskCenter projectId={projectId} onCancel={onCancelTask} onFocus={onFocusTask} />
+                    <CanvasGenerationTaskCenter projectId={projectId} onCancel={onCancelTask} onFocus={onFocusTask} onRetry={onRetryTask} />
                     {missingMediaCount ? (
                         <Tooltip title={t("canvas.missingMedia.title")}>
                             <Badge count={missingMediaCount} size="small" offset={[-1, 3]}>

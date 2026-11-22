@@ -1,5 +1,5 @@
 import { Badge, Button, Drawer, Empty, Tag, Tooltip } from "antd";
-import { CheckCircle2, CircleStop, Clock3, Focus, ListTodo, LoaderCircle, Trash2, XCircle } from "lucide-react";
+import { CheckCircle2, CircleStop, Clock3, Focus, ListTodo, LoaderCircle, RefreshCw, Trash2, XCircle } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -7,7 +7,17 @@ import { canvasThemes } from "@/lib/canvas-theme";
 import { useGenerationTaskStore, type GenerationTask } from "@/stores/use-generation-task-store";
 import { useThemeStore } from "@/stores/use-theme-store";
 
-export function CanvasGenerationTaskCenter({ projectId, onCancel, onFocus }: { projectId: string; onCancel: (runningNodeId: string) => void; onFocus: (nodeId: string) => void }) {
+export function CanvasGenerationTaskCenter({
+    projectId,
+    onCancel,
+    onFocus,
+    onRetry,
+}: {
+    projectId: string;
+    onCancel: (runningNodeId: string) => void;
+    onFocus: (nodeId: string) => void;
+    onRetry?: (originNodeId: string) => void;
+}) {
     const { t } = useTranslation();
     const theme = canvasThemes[useThemeStore((state) => state.theme)];
     const tasks = useGenerationTaskStore((state) => state.tasks);
@@ -46,7 +56,12 @@ export function CanvasGenerationTaskCenter({ projectId, onCancel, onFocus }: { p
                                         {task.status === "queued" || task.status === "running" ? (
                                             <Tooltip title={t("canvas.taskCenter.cancel")}><Button type="text" danger size="small" icon={<CircleStop className="size-4" />} onClick={() => onCancel(task.runningNodeId)} /></Tooltip>
                                         ) : (
-                                            <Tooltip title={t("common.delete")}><Button type="text" size="small" icon={<Trash2 className="size-4" />} onClick={() => removeTask(task.id)} /></Tooltip>
+                                            <>
+                                                {task.status === "failed" && onRetry ? (
+                                                    <Tooltip title={t("canvas.taskCenter.retry")}><Button type="text" size="small" icon={<RefreshCw className="size-4" />} onClick={() => onRetry(task.originNodeId)} /></Tooltip>
+                                                ) : null}
+                                                <Tooltip title={t("common.delete")}><Button type="text" size="small" icon={<Trash2 className="size-4" />} onClick={() => removeTask(task.id)} /></Tooltip>
+                                            </>
                                         )}
                                     </div>
                                 </div>

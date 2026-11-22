@@ -1082,6 +1082,20 @@ function InfiniteCanvasPage() {
         setNodes((prev) => prev.map((node) => (node.id === groupId ? { ...node, metadata: { ...node.metadata, collapsed: !node.metadata?.collapsed } } : node)));
     }, []);
 
+    const arrangeSelectedNodes = useCallback(() => {
+        const selected = nodesRef.current.filter((node) => selectedNodeIdsRef.current.has(node.id) && !node.metadata?.locked);
+        if (selected.length < 2) return;
+        const gap = 48;
+        const columns = Math.max(1, Math.ceil(Math.sqrt(selected.length)));
+        const sorted = [...selected].sort((a, b) => a.position.y - b.position.y || a.position.x - b.position.x);
+        const cellWidth = Math.max(...sorted.map((node) => node.width)) + gap;
+        const cellHeight = Math.max(...sorted.map((node) => node.height)) + gap;
+        const originX = Math.min(...sorted.map((node) => node.position.x));
+        const originY = Math.min(...sorted.map((node) => node.position.y));
+        const positions = new Map(sorted.map((node, index) => [node.id, { x: originX + (index % columns) * cellWidth, y: originY + Math.floor(index / columns) * cellHeight }]));
+        setNodes((prev) => prev.map((node) => (positions.has(node.id) ? { ...node, position: positions.get(node.id)! } : node)));
+    }, []);
+
     const restoreHistoryItem = useCallback(
         (item: CanvasNodeHistoryItem) => {
             if (!historyNodeId) return;
@@ -3070,6 +3084,10 @@ function InfiniteCanvasPage() {
                     projectId={projectId}
                     onCancelTask={stopGenerationByRunningId}
                     onFocusTask={focusNode}
+                    onRetryTask={(originNodeId) => {
+                        const node = nodesRef.current.find((item) => item.id === originNodeId);
+                        if (node) void handleRetryNode(node);
+                    }}
                     missingMediaCount={missingMedia.length}
                     onOpenMissingMedia={() => setMissingMediaOpen(true)}
                     saveState={saveState}
@@ -3294,6 +3312,11 @@ function InfiniteCanvasPage() {
                                 setHistoryNodeId(contextMenu.nodeId);
                                 setContextMenu(null);
                             }
+                        }}
+                        canArrange={selectedNodeIds.size > 1}
+                        onArrange={() => {
+                            arrangeSelectedNodes();
+                            setContextMenu(null);
                         }}
                     />
                 ) : null}

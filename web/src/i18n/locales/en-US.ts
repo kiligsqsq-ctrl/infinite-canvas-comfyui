@@ -232,7 +232,7 @@ export default {
         nodeToolbar: { noPrompt: "No prompt to copy", infoTitle: "View node information", info: "Info", removeTitle: "Remove node", retryTitle: "Generate again", saveAsset: "Save asset", downloadAudio: "Download audio", downloadVideo: "Download video", downloadImage: "Download image", editTextTitle: "Edit text", editText: "Edit text", decreaseFont: "Decrease font size", increaseFont: "Increase font size", zoomOut: "Smaller", zoomIn: "Larger", uploadImage: "Upload image", replaceVideo: "Replace video", uploadVideo: "Upload video", replaceAudio: "Replace audio", uploadAudio: "Upload audio", nodeInfo: "Node information", name: "Name", type: "Type", size: "Size", position: "Position", status: "Status", imageGroup: "Image group", imageSize: "Image size" },
         configNode: { title: "Generation config", image: "Image", text: "Text", video: "Video", audio: "Audio", prompt: "Prompt", references: "Reference images", videoReferences: "Reference videos", audioReferences: "Reference audio", items: "{{count}} items", images: "{{count}} images", compose: "Compose prompt", preview: "Check", stop: "Stop", generate: "Generate" },
         taskCenter: {
-            title: "Generation tasks", clearFinished: "Clear finished", empty: "No generation tasks", untitled: "Generation task", focus: "Focus node", cancel: "Cancel task",
+            title: "Generation tasks", clearFinished: "Clear finished", empty: "No generation tasks", untitled: "Generation task", focus: "Focus node", cancel: "Cancel task", retry: "Retry",
             status: { queued: "Queued", running: "Running", completed: "Completed", failed: "Failed", canceled: "Canceled" },
         },
         missingMedia: {
@@ -264,6 +264,7 @@ export default {
         promptPanel: { video: "Describe the video you want to generate", audio: "Describe the audio you want to generate", image: "Describe the image you want to generate", text: "Describe the text you want to generate", editImage: "Describe how you want to change this image", editText: "Describe how you want to revise this text", expandEditor: "Expand editor", preview: "Pre-generation check", editorTitle: "Edit prompt", stopGeneration: "Stop generation", generate: "Generate", stop: "Stop" },
         composer: { title: "Compose prompt", description: "Use @ to reference connected assets; references are renumbered before sending", placeholder: "Enter a prompt and use @ to reference connected images or text", imagePreview: "Referenced image preview", resources: { image: "Image {{index}}", video: "Video {{index}}", audio: "Audio {{index}}", text: "Text {{index}}" } },
         controls: {
+            arrangeNodes: "Auto-arrange nodes",
             history: "Generation history",
             lock: "Lock node",
             unlock: "Unlock node",
