@@ -191,12 +191,14 @@ function InfiniteCanvasPage() {
         hasMoved: boolean;
         startX: number;
         startY: number;
+        startK: number;
         initialSelectedNodes: { id: string; x: number; y: number }[];
     }>({
         isDraggingNode: false,
         hasMoved: false,
         startX: 0,
         startY: 0,
+        startK: 1,
         initialSelectedNodes: [],
     });
 
@@ -1272,6 +1274,7 @@ function InfiniteCanvasPage() {
             hasMoved: false,
             startX: event.clientX,
             startY: event.clientY,
+            startK: viewportRef.current.k,
             initialSelectedNodes: currentNodes.filter((node) => dragIds.has(node.id)).map((node) => ({ id: node.id, x: node.position.x, y: node.position.y })),
         };
         historyPausedRef.current = true;
@@ -1290,8 +1293,10 @@ function InfiniteCanvasPage() {
         const wasClick = !dragRef.current.hasMoved && dragRef.current.initialSelectedNodes.length === 1;
         const clickedNodeId = dragRef.current.initialSelectedNodes[0]?.id;
         const currentViewport = viewportRef.current;
-        const dx = clientX == null ? 0 : (clientX - dragRef.current.startX) / currentViewport.k;
-        const dy = clientY == null ? 0 : (clientY - dragRef.current.startY) / currentViewport.k;
+        // Keep the scale captured at drag start so zooming mid-drag does not make the nodes jump.
+        const dragK = dragRef.current.startK || currentViewport.k;
+        const dx = clientX == null ? 0 : (clientX - dragRef.current.startX) / dragK;
+        const dy = clientY == null ? 0 : (clientY - dragRef.current.startY) / dragK;
         const initialPositions = dragRef.current.initialSelectedNodes;
 
         historyPausedRef.current = false;
@@ -1338,8 +1343,9 @@ function InfiniteCanvasPage() {
             const currentViewport = viewportRef.current;
 
             if (dragRef.current.isDraggingNode) {
-                const dx = (event.clientX - dragRef.current.startX) / currentViewport.k;
-                const dy = (event.clientY - dragRef.current.startY) / currentViewport.k;
+                const dragK = dragRef.current.startK || currentViewport.k;
+                const dx = (event.clientX - dragRef.current.startX) / dragK;
+                const dy = (event.clientY - dragRef.current.startY) / dragK;
                 const initialPositions = dragRef.current.initialSelectedNodes;
                 if (Math.abs(event.clientX - dragRef.current.startX) > 3 || Math.abs(event.clientY - dragRef.current.startY) > 3) {
                     dragRef.current.hasMoved = true;
@@ -1438,14 +1444,29 @@ function InfiniteCanvasPage() {
     );
 
     useEffect(() => {
-        const handlePointerUp = (event: PointerEvent) => finishNodeDrag(event.clientX, event.clientY);
+        const handlePointerUp = (event: PointerEvent) => {
+            finishNodeDrag(event.clientX, event.clientY);
+            // Pointer events keep firing with pointer capture even outside the window; always clear the marquee here.
+            selectionBoxRef.current = null;
+            setSelectionBox(null);
+        };
         const cancelNodeDrag = () => finishNodeDrag();
+        // Releasing the mouse outside the window never sends a mouseup here, so end drags/marquee when the pointer leaves.
+        const handleWindowMouseOut = (event: MouseEvent) => {
+            if (event.relatedTarget) return;
+            if (dragRef.current.isDraggingNode) finishNodeDrag();
+            if (selectionBoxRef.current) {
+                selectionBoxRef.current = null;
+                setSelectionBox(null);
+            }
+        };
         window.addEventListener("mousemove", handleGlobalMouseMove);
         window.addEventListener("mouseup", handleGlobalMouseUp);
         window.addEventListener("pointerup", handlePointerUp);
         window.addEventListener("pointercancel", cancelNodeDrag);
         window.addEventListener("blur", cancelNodeDrag);
         window.addEventListener("pointermove", handleGlobalPointerMove);
+        window.addEventListener("mouseout", handleWindowMouseOut);
         return () => {
             window.removeEventListener("mousemove", handleGlobalMouseMove);
             window.removeEventListener("mouseup", handleGlobalMouseUp);
@@ -1453,6 +1474,7 @@ function InfiniteCanvasPage() {
             window.removeEventListener("pointercancel", cancelNodeDrag);
             window.removeEventListener("blur", cancelNodeDrag);
             window.removeEventListener("pointermove", handleGlobalPointerMove);
+            window.removeEventListener("mouseout", handleWindowMouseOut);
         };
     }, [finishNodeDrag, handleGlobalMouseMove, handleGlobalMouseUp, handleGlobalPointerMove]);
 

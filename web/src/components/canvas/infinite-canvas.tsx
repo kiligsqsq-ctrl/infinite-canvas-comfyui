@@ -51,6 +51,14 @@ export function InfiniteCanvas({ containerRef, viewport, tool, backgroundMode = 
     );
 
     useEffect(() => {
+        // Releasing the temporary pan key must end an in-progress pan right away, otherwise the grabbing cursor sticks.
+        const endTemporaryPan = () => {
+            if (!panState.current.isPanning) return;
+            panState.current.isPanning = false;
+            setIsPanning(false);
+            document.body.style.cursor = "";
+        };
+
         const handleKeyDown = (event: KeyboardEvent) => {
             if (event.key === "Control") setIsControlPressed(true);
             if (event.code !== "Space") return;
@@ -65,8 +73,12 @@ export function InfiniteCanvas({ containerRef, viewport, tool, backgroundMode = 
                 const target = event.target instanceof Element ? event.target : null;
                 if (!(event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLSelectElement || target?.closest("[contenteditable='true']"))) event.preventDefault();
                 setIsSpacePressed(false);
+                endTemporaryPan();
             }
-            if (event.key === "Control") setIsControlPressed(false);
+            if (event.key === "Control") {
+                setIsControlPressed(false);
+                endTemporaryPan();
+            }
         };
 
         const handleBlur = () => {
