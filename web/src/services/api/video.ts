@@ -107,7 +107,7 @@ async function createComfyVideoTask(config: AiConfig, model: string, workflowId:
             params: {
                 seconds: normalizeVideoSeconds(config.videoSeconds, model),
                 size: normalizeVideoSize(config.size),
-                resolution: normalizeVideoResolution(config.vquality, model, config.size),
+                resolution: normalizeVideoResolution(config.vquality, model, config.size, config.serviceType === "comfyui"),
                 ratio: config.size,
                 generateAudio: boolConfig(config.videoGenerateAudio, true),
                 watermark: boolConfig(config.videoWatermark, false),
@@ -333,8 +333,8 @@ function normalizeVideoSize(value: string) {
 
 const MINIMAX_MEGAPIXEL_PRESETS = ["0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "0.98", "1.0", "1.2", "1.5", "1.8", "2.0"];
 
-function normalizeVideoResolution(value: string, model = "", size = "") {
-    if (/minimax[\s_-]*h3/i.test(model)) {
+function normalizeVideoResolution(value: string, model = "", size = "", comfyui = false) {
+    if (comfyui || /minimax[\s_-]*h3/i.test(model)) {
         if (MINIMAX_MEGAPIXEL_PRESETS.includes(value)) return value;
         // Custom width/height: convert to the equivalent megapixel value used by first-pass resolution inputs.
         const match = size.match(/^(\d+)x(\d+)$/i);

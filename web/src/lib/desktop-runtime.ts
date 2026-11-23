@@ -10,6 +10,8 @@ export function isDesktopRuntime() {
 export function installDesktopNetworkBridge() {
     if (installed || !isDesktopRuntime()) return;
     installed = true;
+    // Electron's XHR cannot load the custom canvas-local scheme, so route axios through fetch.
+    axios.defaults.adapter = "fetch";
     installFetchProxy();
     axios.interceptors.request.use(proxyAxiosRequest);
 }

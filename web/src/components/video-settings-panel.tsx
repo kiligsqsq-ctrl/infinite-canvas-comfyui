@@ -44,7 +44,7 @@ type VideoSettingsPanelProps = {
 
 export function VideoSettingsPanel({ config, onConfigChange, theme, showTitle = true, className = "w-[320px] space-y-4 rounded-2xl px-1 py-0.5" }: VideoSettingsPanelProps) {
     const { t } = useTranslation();
-    const miniMaxH3 = isMiniMaxH3VideoConfig(config);
+    const miniMaxH3 = isMiniMaxH3VideoConfig(config) || isComfyUiWorkflowVideoConfig(config);
     const seedance = isSeedanceVideoConfig(config);
     const seconds = config.videoSeconds || "5";
     const size = normalizeVideoSizeValue(config.size);
@@ -144,8 +144,13 @@ export function isMiniMaxH3VideoConfig(config: Pick<AiConfig, "model" | "videoMo
     return /minimax[\s_-]*h3/i.test(modelOptionName(config.model || config.videoModel));
 }
 
-export function videoResolutionLabel(value: string, config?: Pick<AiConfig, "model" | "videoModel">) {
-    if (config && isMiniMaxH3VideoConfig(config)) {
+// Any ComfyUI workflow video model uses the first-pass megapixel resolution input (H3 and future workflows).
+export function isComfyUiWorkflowVideoConfig(config: Pick<AiConfig, "serviceType">) {
+    return config.serviceType === "comfyui";
+}
+
+export function videoResolutionLabel(value: string, config?: Pick<AiConfig, "model" | "videoModel" | "serviceType">) {
+    if (config && (isMiniMaxH3VideoConfig(config) || isComfyUiWorkflowVideoConfig(config))) {
         const normalized = normalizeMiniMaxResolutionValue(value);
         return normalized === "custom" ? i18n.t("settingsPanels.video.customResolution") : `${normalized} MP`;
     }
