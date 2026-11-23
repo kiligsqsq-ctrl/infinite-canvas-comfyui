@@ -5,6 +5,8 @@ description: Implemented changes that still need manual verification
 
 # Pending Tests
 
+- Workflow type detection: an image-editing workflow that contains MiniMax-H3 nodes should be detected as image, not video; duration/ratio hints should only appear for video workflows; re-uploading the JSON should restore the capability of workflows that were mislabeled.
+- ComfyUI failure messages: errors should now name the failing stage (connect / upload media / submit workflow / query progress / download result) and explain the cause in Chinese instead of just "Failed to fetch".
 - Canvas interaction state cleanup: releasing Space/Ctrl should end the pan immediately and restore the cursor; leaving the window while marquee-selecting or dragging a node should not leave the selection rectangle or sticky drag state; zooming mid-drag should not make the node jump.
 - Canvas space panning: after dragging the canvas with Space held, releasing Space should immediately end the pan and restore the default cursor instead of leaving the grabbing hand; the same applies to the Ctrl temporary tool.
 - First-pass resolution interaction: the preset dropdown should open normally (native select) with a separate resolution box next to it (read-only for presets, editable in Custom mode); ratio buttons stay and follow the preset dimensions.

@@ -92,13 +92,17 @@ export async function runComfyWorkflow({ workflowId, capability, config, prompt,
     try {
         const outputFile = await waitForComfyOutput(comfyUrl, headers, promptId, mapping.outputNodeId, capability, signal);
         const query = new URLSearchParams({ filename: outputFile.filename, subfolder: outputFile.subfolder || "", type: outputFile.type || "output" });
-        return (
-            await axios.get<Blob>(`${comfyUrl}/view?${query.toString()}`, {
-                headers,
-                responseType: "blob",
-                signal,
-            })
-        ).data;
+        try {
+            return (
+                await axios.get<Blob>(`${comfyUrl}/view?${query.toString()}`, {
+                    headers,
+                    responseType: "blob",
+                    signal,
+                })
+            ).data;
+        } catch (error) {
+            throw new Error(`从 ComfyUI 下载生成结果失败：${errorDetail(error)}`);
+        }
     } finally {
         signal?.removeEventListener("abort", cancelListener);
     }
@@ -204,12 +208,17 @@ async function uploadInput(value: string | ComfyMediaReference, kind: "image" | 
     form.append("type", "input");
     form.append("subfolder", "infinite-canvas");
     form.append("overwrite", "true");
-    const uploaded = (
-        await axios.post<{ name?: string; subfolder?: string }>(`${comfyUrl}/upload/image`, form, {
-            headers,
-            signal,
-        })
-    ).data;
+    let uploaded: { name?: string; subfolder?: string };
+    try {
+        uploaded = (
+            await axios.post<{ name?: string; subfolder?: string }>(`${comfyUrl}/upload/image`, form, {
+                headers,
+                signal,
+            })
+        ).data;
+    } catch (error) {
+        throw new Error(`上传第 ${index + 1} 个${kindLabel(kind)}素材到 ComfyUI 失败：${errorDetail(error)}`);
+    }
     if (!uploaded.name) throw new Error("ComfyUI 上传接口没有返回文件名");
     return [uploaded.subfolder, uploaded.name].filter(Boolean).join("/");
 }
@@ -226,7 +235,13 @@ async function waitForComfyOutput(comfyUrl: string, headers: Record<string, stri
     const deadline = Date.now() + 3_600_000;
     for (;;) {
         if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
-        const history = (await axios.get<Record<string, unknown>>(`${comfyUrl}/history/${encodeURIComponent(promptId)}`, { headers, signal })).data;
+        let history: Record<string, unknown>;
+        try {
+            history = (await axios.get<Record<string, unknown>>(`${comfyUrl}/history/${encodeURIComponent(promptId)}`, { headers, signal })).data;
+        } catch (error) {
+            if (signal?.aborted) throw error;
+            throw new Error(`查询 ComfyUI 任务进度失败：${errorDetail(error)}`);
+        }
         const entry = history[promptId] as Record<string, unknown> | undefined;
         if (entry) {
             const status = entry.status as { status_str?: string; completed?: boolean; messages?: unknown[] } | undefined;
@@ -302,17 +317,25 @@ function createUniqueId(prefix: string) {
 function errorDetail(error: unknown) {
     if (axios.isAxiosError(error)) {
         const data = error.response?.data;
-        if (typeof data === "string") return data;
+        if (typeof data === "string") return describeNetworkError(data);
         if (data) {
             try {
                 return JSON.stringify(data);
             } catch {
-                return error.message;
+                return describeNetworkError(error.message);
             }
         }
-        return error.message;
+        return describeNetworkError(error.message);
     }
-    return error instanceof Error ? error.message : String(error);
+    return describeNetworkError(error instanceof Error ? error.message : String(error));
+}
+
+// Turn browser fetch failures into something actionable for the canvas user.
+function describeNetworkError(message: string) {
+    if (/failed to fetch|network error|fetch failed|load failed/i.test(message)) {
+        return "网络请求失败，无法连接 ComfyUI。请确认 ComfyUI 正在运行、接口地址正确，稍后重试。";
+    }
+    return message;
 }
 
 function capabilityLabel(capability: string) {

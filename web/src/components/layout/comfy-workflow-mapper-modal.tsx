@@ -88,7 +88,9 @@ export function ComfyWorkflowMapperModal({
     ];
     const miniMaxH3 = Boolean(workflow && isMiniMaxH3Workflow(workflow));
     const mappedFields = [mapping.prompt && t("config.workflowMapper.prompt"), mapping.duration && t("config.workflowMapper.duration"), mapping.ratio && t("config.workflowMapper.ratio"), mapping.resolution && t("config.workflowMapper.resolution"), mapping.seed && t("config.workflowMapper.seed"), mapping.outputNodeId && t("config.workflowMapper.outputNode")].filter(Boolean) as string[];
-    const missingFields = [!mapping.prompt && t("config.workflowMapper.prompt"), miniMaxH3 && !mapping.duration && t("config.workflowMapper.duration"), miniMaxH3 && !mapping.ratio && t("config.workflowMapper.ratio"), miniMaxH3 && !mapping.resolution && t("config.workflowMapper.resolution"), !mapping.outputNodeId && t("config.workflowMapper.outputNode")].filter(Boolean) as string[];
+    const videoCapability = detectedCapability === "video";
+    const mediaCapability = detectedCapability !== "audio";
+    const missingFields = [!mapping.prompt && t("config.workflowMapper.prompt"), videoCapability && !mapping.duration && t("config.workflowMapper.duration"), videoCapability && !mapping.ratio && t("config.workflowMapper.ratio"), mediaCapability && !mapping.resolution && t("config.workflowMapper.resolution"), !mapping.outputNodeId && t("config.workflowMapper.outputNode")].filter(Boolean) as string[];
     const missingRequiredFields = [!mapping.prompt && t("config.workflowMapper.prompt"), !mapping.outputNodeId && t("config.workflowMapper.outputNode")].filter(Boolean) as string[];
 
     const importWorkflow = async (file: File) => {
@@ -383,13 +385,15 @@ function isMiniMaxH3Workflow(workflow: ComfyWorkflow) {
 }
 
 // Detect whether an uploaded API workflow produces videos, audio or images.
+// Decides from the save/output nodes: an image workflow may still contain video-model nodes (e.g. H3 image editing).
 function guessWorkflowCapability(workflow: ComfyWorkflow): WorkflowCapability {
     const nodes = Object.values(workflow);
     const has = (pattern: RegExp) => nodes.some((node) => pattern.test(`${node.class_type || ""} ${node._meta?.title || ""}`));
     if (has(/save.*video|vhs.*video|video.*combine|savemp4/i)) return "video";
-    if (has(/minimax.*h3|h3.*minimax/i)) return "video";
     if (has(/save.*audio|preview.*audio|audio.*save/i)) return "audio";
-    if (has(/save.*image|preview.*image|saveanimatedwebp/i)) return "image";
+    if (has(/save.*image|preview.*image|saveimage/i)) return "image";
+    // Only fall back to the model family when no output node was recognized.
+    if (has(/minimax.*h3|h3.*minimax/i)) return "video";
     return "image";
 }
 
