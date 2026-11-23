@@ -5,6 +5,7 @@ description: Implemented changes that still need manual verification
 
 # Pending Tests
 
+- Simplified ComfyUI workflow mapping: after uploading a full API workflow JSON the app should auto-detect all inputs and reference slots, with the UI showing only name, detection summary and save; at generation time only connected references are filled and unused slots are removed from the workflow, with duration/ratio/resolution taken from the canvas settings.
 - Quality wrap-up: multi-selected canvas nodes should offer Auto-arrange in the context menu; failed cards in the generation task center should have a Retry action; CI builds should include type checking, desktop unit tests and the smoke test; the app should work normally after the dependency updates.
 - Desktop blank screen fix: the Windows desktop app should open the home page and canvas normally again (the vendor chunk split introduced in 0.1.4 was reverted) instead of showing a blank window.
 - Wrap-up round: right-clicking an image node on the canvas should offer generation history to restore recent results; My Canvases cards should show cover thumbnails; the home hero image should load normally (WebP); the desktop app should show an error page instead of a blank window when the page fails to load; pages should load normally after vendor chunk splitting.

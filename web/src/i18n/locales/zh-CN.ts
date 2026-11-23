@@ -538,6 +538,8 @@ export default {
             prompt: "提示词输入", duration: "时长输入", ratio: "比例输入", resolution: "分辨率 / 兆像素输入", seed: "随机种子输入", imageSlots: "图片参考槽位", videoSlots: "视频参考槽位", audioSlots: "音频参考槽位", noSlots: "没有槽位，可手动添加",
             outputNode: "结果输出节点", selectNode: "选择节点", clear: "解除当前映射", importFirst: "请先导入工作流 JSON", promptRequired: "请选择提示词输入位置", outputRequired: "请选择结果输出节点", missingRequired: "请先补齐这些必要位置：{{fields}}", saved: "工作流映射已保存", saveFailed: "工作流映射保存失败",
             miniMaxDetected: "已识别 MiniMax-H3 API 工作流", mappingDetected: "已完成工作流自动识别", mappedSummary: "已找到：{{fields}}", slotSummary: "参考槽位：{{images}} 图、{{videos}} 视频、{{audios}} 音频", missingSummary: "仍需手动指定：{{fields}}", separator: "、", none: "暂无",
+            advancedOptions: "高级选项（手动调整映射）",
+            autoHint: "已自动完成映射，通常无需手动调整；生成时只使用画布实际连接的素材，未连接的参考槽位会自动从工作流中移除。",
             checkCompatibility: "检查当前 ComfyUI", nodesReady: "兼容：所需 {{count}} 种节点均已安装", nodesMissing: "当前 ComfyUI 缺少 {{count}} 种节点", compatibilityFailed: "无法检查 ComfyUI 节点", compatibilityConnectionHint: "请确认接口地址、ComfyUI 启动状态和 CORS 设置", modelFilesNotChecked: "这里只检查节点类型；模型、VAE、CLIP、LoRA 等文件仍需在 ComfyUI 中自行确认。",
         },
         modelSelect: {

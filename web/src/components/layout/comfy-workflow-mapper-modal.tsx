@@ -1,4 +1,4 @@
-import { Alert, App, Button, Empty, Input, Modal, Select, Spin } from "antd";
+import { Alert, App, Button, Collapse, Empty, Input, Modal, Select, Spin } from "antd";
 import { FileUp, Plus, ShieldCheck, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -44,6 +44,7 @@ export function ComfyWorkflowMapperModal({
     const [checkingCompatibility, setCheckingCompatibility] = useState(false);
     const [compatibility, setCompatibility] = useState<ComfyWorkflowCompatibility | null>(null);
     const [compatibilityError, setCompatibilityError] = useState("");
+    const [advancedOpen, setAdvancedOpen] = useState(false);
 
     useEffect(() => {
         if (!open) return;
@@ -82,6 +83,7 @@ export function ComfyWorkflowMapperModal({
             setSourceFileName(file.name);
             setName(modelName || file.name.replace(/\.json$/i, ""));
             setMapping(guessMapping(parsed, capability));
+            setAdvancedOpen(false);
             setCompatibility(null);
             setCompatibilityError("");
             message.success(t("config.workflowMapper.imported", { count: Object.keys(parsed).length }));
@@ -108,7 +110,10 @@ export function ComfyWorkflowMapperModal({
 
     const save = async () => {
         if (!workflow) return message.error(t("config.workflowMapper.importFirst"));
-        if (missingRequiredFields.length) return message.error(t("config.workflowMapper.missingRequired", { fields: missingRequiredFields.join(t("config.workflowMapper.separator")) }));
+        if (missingRequiredFields.length) {
+            setAdvancedOpen(true);
+            return message.error(t("config.workflowMapper.missingRequired", { fields: missingRequiredFields.join(t("config.workflowMapper.separator")) }));
+        }
         const normalizedMapping = {
             ...mapping,
             imageSlots: mapping.imageSlots.filter((binding) => binding.nodeId && binding.inputName),
@@ -183,6 +188,7 @@ export function ComfyWorkflowMapperModal({
                                 <div className="space-y-1">
                                     <div>{t("config.workflowMapper.mappedSummary", { fields: mappedFields.join(t("config.workflowMapper.separator")) || t("config.workflowMapper.none") })}</div>
                                     <div>{t("config.workflowMapper.slotSummary", { images: mapping.imageSlots.length, videos: mapping.videoSlots.length, audios: mapping.audioSlots.length })}</div>
+                                    <div className="opacity-75">{t("config.workflowMapper.autoHint")}</div>
                                     {missingFields.length ? <div>{t("config.workflowMapper.missingSummary", { fields: missingFields.join(t("config.workflowMapper.separator")) })}</div> : null}
                                 </div>
                             }
@@ -210,30 +216,43 @@ export function ComfyWorkflowMapperModal({
                     {!workflow ? (
                         <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("config.workflowMapper.empty")} />
                     ) : (
-                        <>
+                        <div className="space-y-4">
                             <label className="block">
                                 <span className="mb-1 block text-sm font-medium">{t("config.workflowMapper.name")}</span>
                                 <Input value={name} onChange={(event) => setName(event.target.value)} />
                             </label>
-                            <div className="grid gap-4 md:grid-cols-2">
-                                <BindingField label={t("config.workflowMapper.prompt")} value={mapping.prompt} options={bindingOptions} required onChange={(prompt) => setMapping((current) => ({ ...current, prompt }))} />
-                                <BindingField label={t("config.workflowMapper.duration")} value={mapping.duration} options={bindingOptions} onChange={(duration) => setMapping((current) => ({ ...current, duration }))} />
-                                <BindingField label={t("config.workflowMapper.ratio")} value={mapping.ratio} options={bindingOptions} onChange={(ratio) => setMapping((current) => ({ ...current, ratio }))} />
-                                <BindingField label={t("config.workflowMapper.resolution")} value={mapping.resolution} options={bindingOptions} onChange={(resolution) => setMapping((current) => ({ ...current, resolution }))} />
-                                <BindingField label={t("config.workflowMapper.seed")} value={mapping.seed} options={bindingOptions} onChange={(seed) => setMapping((current) => ({ ...current, seed }))} />
-                            </div>
-
-                            <div className="grid gap-4 md:grid-cols-3">
-                                <SlotEditor title={t("config.workflowMapper.imageSlots")} values={mapping.imageSlots} options={bindingOptions} onChange={(imageSlots) => setMapping((current) => ({ ...current, imageSlots }))} />
-                                <SlotEditor title={t("config.workflowMapper.videoSlots")} values={mapping.videoSlots} options={bindingOptions} onChange={(videoSlots) => setMapping((current) => ({ ...current, videoSlots }))} />
-                                <SlotEditor title={t("config.workflowMapper.audioSlots")} values={mapping.audioSlots} options={bindingOptions} onChange={(audioSlots) => setMapping((current) => ({ ...current, audioSlots }))} />
-                            </div>
-
-                            <label className="block">
-                                <span className="mb-1 block text-sm font-medium">{t("config.workflowMapper.outputNode")} *</span>
-                                <Select className="w-full" showSearch optionFilterProp="label" value={mapping.outputNodeId || undefined} options={nodeOptions} placeholder={t("config.workflowMapper.selectNode")} onChange={(outputNodeId) => setMapping((current) => ({ ...current, outputNodeId }))} />
-                            </label>
-                        </>
+                            <Collapse
+                                size="small"
+                                activeKey={advancedOpen ? ["advanced"] : []}
+                                onChange={(keys) => setAdvancedOpen(Array.isArray(keys) ? keys.includes("advanced") : keys === "advanced")}
+                                items={[
+                                    {
+                                        key: "advanced",
+                                        label: t("config.workflowMapper.advancedOptions"),
+                                        children: (
+                                            <div className="space-y-4">
+                                                <div className="grid gap-4 md:grid-cols-2">
+                                                    <BindingField label={t("config.workflowMapper.prompt")} value={mapping.prompt} options={bindingOptions} required onChange={(prompt) => setMapping((current) => ({ ...current, prompt }))} />
+                                                    <BindingField label={t("config.workflowMapper.duration")} value={mapping.duration} options={bindingOptions} onChange={(duration) => setMapping((current) => ({ ...current, duration }))} />
+                                                    <BindingField label={t("config.workflowMapper.ratio")} value={mapping.ratio} options={bindingOptions} onChange={(ratio) => setMapping((current) => ({ ...current, ratio }))} />
+                                                    <BindingField label={t("config.workflowMapper.resolution")} value={mapping.resolution} options={bindingOptions} onChange={(resolution) => setMapping((current) => ({ ...current, resolution }))} />
+                                                    <BindingField label={t("config.workflowMapper.seed")} value={mapping.seed} options={bindingOptions} onChange={(seed) => setMapping((current) => ({ ...current, seed }))} />
+                                                </div>
+                                                <div className="grid gap-4 md:grid-cols-3">
+                                                    <SlotEditor title={t("config.workflowMapper.imageSlots")} values={mapping.imageSlots} options={bindingOptions} onChange={(imageSlots) => setMapping((current) => ({ ...current, imageSlots }))} />
+                                                    <SlotEditor title={t("config.workflowMapper.videoSlots")} values={mapping.videoSlots} options={bindingOptions} onChange={(videoSlots) => setMapping((current) => ({ ...current, videoSlots }))} />
+                                                    <SlotEditor title={t("config.workflowMapper.audioSlots")} values={mapping.audioSlots} options={bindingOptions} onChange={(audioSlots) => setMapping((current) => ({ ...current, audioSlots }))} />
+                                                </div>
+                                                <label className="block">
+                                                    <span className="mb-1 block text-sm font-medium">{t("config.workflowMapper.outputNode")} *</span>
+                                                    <Select className="w-full" showSearch optionFilterProp="label" value={mapping.outputNodeId || undefined} options={nodeOptions} placeholder={t("config.workflowMapper.selectNode")} onChange={(outputNodeId) => setMapping((current) => ({ ...current, outputNodeId }))} />
+                                                </label>
+                                            </div>
+                                        ),
+                                    },
+                                ]}
+                            />
+                        </div>
                     )}
                 </div>
             </Spin>
