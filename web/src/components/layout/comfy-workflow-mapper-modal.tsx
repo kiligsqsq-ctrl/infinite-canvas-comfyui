@@ -28,7 +28,7 @@ export function ComfyWorkflowMapperModal({
     workflowId?: string;
     baseUrl: string;
     apiKey?: string;
-    onSave: (workflowId: string) => void;
+    onSave: (workflowId: string, capability: WorkflowCapability) => void;
     onClear: () => void;
     onClose: () => void;
 }) {
@@ -45,6 +45,7 @@ export function ComfyWorkflowMapperModal({
     const [compatibility, setCompatibility] = useState<ComfyWorkflowCompatibility | null>(null);
     const [compatibilityError, setCompatibilityError] = useState("");
     const [advancedOpen, setAdvancedOpen] = useState(false);
+    const [detectedCapability, setDetectedCapability] = useState<WorkflowCapability>(capability);
 
     useEffect(() => {
         if (!open) return;
@@ -55,6 +56,7 @@ export function ComfyWorkflowMapperModal({
         setSourceFileName("");
         setCompatibility(null);
         setCompatibilityError("");
+        setDetectedCapability(capability);
         if (!workflowId) return () => void (active = false);
         setLoading(true);
         void getComfyWorkflowPreset(workflowId)
@@ -64,6 +66,7 @@ export function ComfyWorkflowMapperModal({
                 setWorkflow(preset.workflow);
                 setMapping(preset.mapping);
                 setSourceFileName(preset.sourceFileName || "");
+                setDetectedCapability(preset.capability);
             })
             .finally(() => active && setLoading(false));
         return () => void (active = false);
@@ -71,6 +74,18 @@ export function ComfyWorkflowMapperModal({
 
     const bindingOptions = useMemo(() => buildBindingOptions(workflow), [workflow]);
     const nodeOptions = useMemo(() => buildNodeOptions(workflow), [workflow]);
+    const describeBinding = (binding: ComfyInputBinding) => {
+        const node = workflow?.[binding.nodeId];
+        return `${binding.nodeId} · ${node?._meta?.title || node?.class_type || "Node"}${binding.inputName ? ` · ${binding.inputName}` : ""}`;
+    };
+    const mappedDetails: Array<[string, ComfyInputBinding | undefined]> = [
+        [t("config.workflowMapper.prompt"), mapping.prompt],
+        [t("config.workflowMapper.duration"), mapping.duration],
+        [t("config.workflowMapper.ratio"), mapping.ratio],
+        [t("config.workflowMapper.resolution"), mapping.resolution],
+        [t("config.workflowMapper.seed"), mapping.seed],
+        [t("config.workflowMapper.outputNode"), mapping.outputNodeId ? { nodeId: mapping.outputNodeId, inputName: "" } : undefined],
+    ];
     const miniMaxH3 = Boolean(workflow && isMiniMaxH3Workflow(workflow));
     const mappedFields = [mapping.prompt && t("config.workflowMapper.prompt"), mapping.duration && t("config.workflowMapper.duration"), mapping.ratio && t("config.workflowMapper.ratio"), mapping.resolution && t("config.workflowMapper.resolution"), mapping.seed && t("config.workflowMapper.seed"), mapping.outputNodeId && t("config.workflowMapper.outputNode")].filter(Boolean) as string[];
     const missingFields = [!mapping.prompt && t("config.workflowMapper.prompt"), miniMaxH3 && !mapping.duration && t("config.workflowMapper.duration"), miniMaxH3 && !mapping.ratio && t("config.workflowMapper.ratio"), miniMaxH3 && !mapping.resolution && t("config.workflowMapper.resolution"), !mapping.outputNodeId && t("config.workflowMapper.outputNode")].filter(Boolean) as string[];
@@ -83,6 +98,7 @@ export function ComfyWorkflowMapperModal({
             setSourceFileName(file.name);
             setName(modelName || file.name.replace(/\.json$/i, ""));
             setMapping(guessMapping(parsed, capability));
+            setDetectedCapability(guessWorkflowCapability(parsed));
             setAdvancedOpen(false);
             setCompatibility(null);
             setCompatibilityError("");
@@ -122,8 +138,9 @@ export function ComfyWorkflowMapperModal({
         };
         setSaving(true);
         try {
-            const preset = await saveComfyWorkflowPreset({ id: workflowId, name: name.trim() || modelName || t("config.workflowMapper.untitled"), capability, workflow, mapping: normalizedMapping, sourceFileName: sourceFileName || undefined });
-            onSave(preset.id);
+            const capabilityToSave = detectedCapability;
+            const preset = await saveComfyWorkflowPreset({ id: workflowId, name: name.trim() || modelName || t("config.workflowMapper.untitled"), capability: capabilityToSave, workflow, mapping: normalizedMapping, sourceFileName: sourceFileName || undefined });
+            onSave(preset.id, capabilityToSave);
             message.success(t("config.workflowMapper.saved"));
             onClose();
         } catch (error) {
@@ -186,9 +203,19 @@ export function ComfyWorkflowMapperModal({
                             message={t(miniMaxH3 ? "config.workflowMapper.miniMaxDetected" : "config.workflowMapper.mappingDetected")}
                             description={
                                 <div className="space-y-1">
+                                    <div>{t("config.workflowMapper.detectedCapability", { capability: t(`config.channelEditor.capabilities.${detectedCapability}`) })}</div>
                                     <div>{t("config.workflowMapper.mappedSummary", { fields: mappedFields.join(t("config.workflowMapper.separator")) || t("config.workflowMapper.none") })}</div>
                                     <div>{t("config.workflowMapper.slotSummary", { images: mapping.imageSlots.length, videos: mapping.videoSlots.length, audios: mapping.audioSlots.length })}</div>
                                     <div className="opacity-75">{t("config.workflowMapper.autoHint")}</div>
+                                    <div className="space-y-0.5 pt-1 text-xs">
+                                        {mappedDetails
+                                            .filter((pairs): pairs is [string, ComfyInputBinding] => Boolean(pairs[1]))
+                                            .map(([label, binding]) => (
+                                                <div key={label} className="truncate">
+                                                    {label} ← {describeBinding(binding)}
+                                                </div>
+                                            ))}
+                                    </div>
                                     {missingFields.length ? <div>{t("config.workflowMapper.missingSummary", { fields: missingFields.join(t("config.workflowMapper.separator")) })}</div> : null}
                                 </div>
                             }
@@ -353,6 +380,17 @@ function guessMapping(workflow: ComfyWorkflow, capability: WorkflowCapability): 
 
 function isMiniMaxH3Workflow(workflow: ComfyWorkflow) {
     return Object.values(workflow).some((node) => /minimax.*h3/i.test(`${node.class_type || ""} ${node._meta?.title || ""}`));
+}
+
+// Detect whether an uploaded API workflow produces videos, audio or images.
+function guessWorkflowCapability(workflow: ComfyWorkflow): WorkflowCapability {
+    const nodes = Object.values(workflow);
+    const has = (pattern: RegExp) => nodes.some((node) => pattern.test(`${node.class_type || ""} ${node._meta?.title || ""}`));
+    if (has(/save.*video|vhs.*video|video.*combine|savemp4/i)) return "video";
+    if (has(/minimax.*h3|h3.*minimax/i)) return "video";
+    if (has(/save.*audio|preview.*audio|audio.*save/i)) return "audio";
+    if (has(/save.*image|preview.*image|saveanimatedwebp/i)) return "image";
+    return "image";
 }
 
 function findUpstreamScalarBinding(workflow: ComfyWorkflow, input: unknown, nodePattern: RegExp, visited = new Set<string>()): ComfyInputBinding | undefined {

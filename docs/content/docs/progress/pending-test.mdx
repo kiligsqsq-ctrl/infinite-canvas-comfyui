@@ -5,6 +5,7 @@ description: Implemented changes that still need manual verification
 
 # Pending Tests
 
+- ComfyUI workflow type: uploading a video/audio workflow JSON should auto-detect and save its type instead of staying on image; the detection summary should list the node each mapping points to for verification; manually changing the type should warn that the workflow must be re-uploaded.
 - Simplified ComfyUI workflow mapping: after uploading a full API workflow JSON the app should auto-detect all inputs and reference slots, with the UI showing only name, detection summary and save; at generation time only connected references are filled and unused slots are removed from the workflow, with duration/ratio/resolution taken from the canvas settings.
 - Quality wrap-up: multi-selected canvas nodes should offer Auto-arrange in the context menu; failed cards in the generation task center should have a Retry action; CI builds should include type checking, desktop unit tests and the smoke test; the app should work normally after the dependency updates.
 - Desktop blank screen fix: the Windows desktop app should open the home page and canvas normally again (the vendor chunk split introduced in 0.1.4 was reverted) instead of showing a blank window.

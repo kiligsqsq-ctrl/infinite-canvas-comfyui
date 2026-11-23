@@ -54,13 +54,17 @@ export function ChannelEditorDrawer({ open, channel, onSave, onClose }: { open: 
     const markWorkflowForDeletion = (workflowId?: string) => workflowId && setWorkflowIdsToDelete((current) => new Set(current).add(workflowId));
     const setCapability = (name: string, capability: ModelCapability) => {
         const model = draft.models.find((item) => item.name === name);
-        if (model?.capability !== capability) markWorkflowForDeletion(model?.workflowId);
-        setModels(draft.models.map((item) => (item.name === name ? { ...item, capability, workflowId: item.capability === capability ? item.workflowId : undefined } : item)));
+        if (!model || model.capability === capability) return;
+        if (model.workflowId) {
+            markWorkflowForDeletion(model.workflowId);
+            message.warning(t("config.channelEditor.capabilityChangeHint"));
+        }
+        setModels(draft.models.map((item) => (item.name === name ? { ...item, capability, workflowId: undefined } : item)));
     };
-    const setWorkflow = (name: string, workflowId?: string) => {
+    const setWorkflow = (name: string, workflowId?: string, capability?: ModelCapability) => {
         const currentId = draft.models.find((model) => model.name === name)?.workflowId;
         if (currentId && !workflowId) markWorkflowForDeletion(currentId);
-        setModels(draft.models.map((model) => (model.name === name ? { ...model, workflowId } : model)));
+        setModels(draft.models.map((model) => (model.name === name ? { ...model, workflowId, ...(capability ? { capability } : {}) } : model)));
     };
     const removeModel = (name: string) => {
         markWorkflowForDeletion(draft.models.find((model) => model.name === name)?.workflowId);
@@ -233,7 +237,7 @@ export function ChannelEditorDrawer({ open, channel, onSave, onClose }: { open: 
                     workflowId={workflowTarget.workflowId}
                     baseUrl={draft.baseUrl}
                     apiKey={draft.apiKey}
-                    onSave={(workflowId) => setWorkflow(workflowTarget.name, workflowId)}
+                    onSave={(workflowId, capability) => setWorkflow(workflowTarget.name, workflowId, capability)}
                     onClear={() => setWorkflow(workflowTarget.name, undefined)}
                     onClose={() => setWorkflowTarget(null)}
                 />
