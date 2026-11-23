@@ -107,7 +107,7 @@ async function createComfyVideoTask(config: AiConfig, model: string, workflowId:
             params: {
                 seconds: normalizeVideoSeconds(config.videoSeconds, model),
                 size: normalizeVideoSize(config.size),
-                resolution: normalizeVideoResolution(config.vquality, model),
+                resolution: normalizeVideoResolution(config.vquality, model, config.size),
                 ratio: config.size,
                 generateAudio: boolConfig(config.videoGenerateAudio, true),
                 watermark: boolConfig(config.videoWatermark, false),
@@ -331,11 +331,22 @@ function normalizeVideoSize(value: string) {
     return `${width}x${height}`;
 }
 
-function normalizeVideoResolution(value: string, model = "") {
-    if (/minimax[\s_-]*h3/i.test(model)) return value === "0.9" ? "0.9" : "0.4";
+const MINIMAX_MEGAPIXEL_PRESETS = ["0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "0.98", "1.0", "1.2", "1.5", "1.8", "2.0"];
+
+function normalizeVideoResolution(value: string, model = "", size = "") {
+    if (/minimax[\s_-]*h3/i.test(model)) {
+        if (MINIMAX_MEGAPIXEL_PRESETS.includes(value)) return value;
+        // Custom width/height: convert to the equivalent megapixel value used by first-pass resolution inputs.
+        const match = size.match(/^(\d+)x(\d+)$/i);
+        if (match) {
+            const megapixels = (Number(match[1]) * Number(match[2])) / 1_000_000;
+            return String(Math.max(0.05, Math.round(megapixels * 100) / 100));
+        }
+        return "0.4";
+    }
     if (value === "low") return "480p";
     if (value === "auto" || value === "high" || value === "medium") return "720p";
-    if (value === "0.4" || value === "0.9") return "720p";
+    if (MINIMAX_MEGAPIXEL_PRESETS.includes(value)) return "720p";
     const resolution = value.replace(/p$/i, "") || "720";
     return `${resolution}p`;
 }

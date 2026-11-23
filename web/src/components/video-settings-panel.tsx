@@ -1,5 +1,5 @@
 import { type ReactNode } from "react";
-import { Switch } from "antd";
+import { Select, Switch } from "antd";
 import { useTranslation } from "react-i18next";
 
 import { ImageSettingsTheme } from "@/components/image-settings-panel";
@@ -8,7 +8,25 @@ import { type CanvasTheme } from "@/lib/canvas-theme";
 import { boolConfig, isSeedanceVideoConfig } from "@/lib/seedance-video";
 import { modelOptionName, type AiConfig } from "@/stores/use-config-store";
 
-const miniMaxResolutionOptions = ["0.4", "0.9"] as const;
+const miniMaxResolutionOptions = ["0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "0.98", "1.0", "1.2", "1.5", "1.8", "2.0"] as const;
+const megapixelPresets: readonly string[] = miniMaxResolutionOptions;
+// Reference sizes from the ComfyUI size note (16:9, multiples of 32).
+const sixteenNineSizes: Record<string, { width: number; height: number }> = {
+    "0.2": { width: 608, height: 352 },
+    "0.3": { width: 736, height: 416 },
+    "0.4": { width: 864, height: 480 },
+    "0.5": { width: 960, height: 544 },
+    "0.6": { width: 1056, height: 608 },
+    "0.7": { width: 1152, height: 640 },
+    "0.8": { width: 1216, height: 672 },
+    "0.9": { width: 1280, height: 736 },
+    "0.98": { width: 1344, height: 768 },
+    "1.0": { width: 1376, height: 768 },
+    "1.2": { width: 1504, height: 832 },
+    "1.5": { width: 1664, height: 928 },
+    "1.8": { width: 1824, height: 1024 },
+    "2.0": { width: 1920, height: 1088 },
+};
 const ratioOptions = ["1:1", "2:3", "3:2", "3:4", "4:3", "9:16", "16:9", "21:9"] as const;
 const secondOptions = [5, 10, 15] as const;
 
@@ -31,13 +49,19 @@ export function VideoSettingsPanel({ config, onConfigChange, theme, showTitle = 
     const seconds = config.videoSeconds || "5";
     const size = normalizeVideoSizeValue(config.size);
     const megapixels = normalizeMiniMaxResolutionValue(config.vquality);
-    const previewMegapixels = miniMaxH3 ? Number(megapixels) : 0.9;
+    const customSizeMatch = (config.size || "").match(/^(\d+)x(\d+)$/i);
+    const customMegapixels = customSizeMatch ? (Number(customSizeMatch[1]) * Number(customSizeMatch[2])) / 1_000_000 : 0.4;
+    const previewMegapixels = !miniMaxH3 ? 0.9 : megapixels === "custom" ? Math.max(0.05, customMegapixels) : Number(megapixels);
     const dimensions = readSizeDimensions(size, previewMegapixels);
+    const customResolution = megapixels === "custom";
     const generateAudio = boolConfig(config.videoGenerateAudio, true);
     const watermark = boolConfig(config.videoWatermark, false);
     const updateDimension = (key: "width" | "height", value: number | null) => {
         const next = Math.max(1, Math.floor(value || dimensions[key] || 720));
-        onConfigChange("size", `${key === "width" ? next : dimensions.width}x${key === "height" ? next : dimensions.height}`);
+        const width = key === "width" ? next : dimensions.width;
+        const height = key === "height" ? next : dimensions.height;
+        onConfigChange("size", `${width}x${height}`);
+        if (miniMaxH3) onConfigChange("vquality", "custom");
     };
 
     return (
@@ -46,21 +70,30 @@ export function VideoSettingsPanel({ config, onConfigChange, theme, showTitle = 
                 {showTitle ? <div className="text-lg font-semibold">{t("settingsPanels.video.title")}</div> : null}
                 {miniMaxH3 ? (
                     <SettingGroup title={t("settingsPanels.video.megapixels")} color={theme.node.muted}>
-                        <div className="grid grid-cols-2 gap-2.5">
-                            {miniMaxResolutionOptions.map((value) => (
-                                <OptionPill key={value} selected={megapixels === value} theme={theme} onClick={() => onConfigChange("vquality", value)}>
-                                    {value} MP
-                                </OptionPill>
-                            ))}
-                        </div>
+                        <Select
+                            size="small"
+                            className="w-full"
+                            value={megapixels}
+                            options={[
+                                ...miniMaxResolutionOptions.map((value) => {
+                                    const optionDimensions = dimensionsForMegapixels(size, Number(value), previewMegapixels);
+                                    return { value, label: `${value} MP · ${optionDimensions.width}×${optionDimensions.height}` };
+                                }),
+                                { value: "custom", label: t("settingsPanels.video.customResolution") },
+                            ]}
+                            onChange={(value) => {
+                                onConfigChange("vquality", value);
+                                if (value !== "custom" && /^\d+x\d+$/i.test(size)) onConfigChange("size", ratioValue(size));
+                            }}
+                        />
                     </SettingGroup>
                 ) : null}
 
                 <SettingGroup title={t("settingsPanels.video.size")} color={theme.node.muted}>
                     <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2.5">
-                        <DimensionInput prefix="W" value={dimensions.width} theme={theme} onChange={(value) => updateDimension("width", value)} />
+                        <DimensionInput prefix="W" value={dimensions.width} theme={theme} disabled={miniMaxH3 && !customResolution} onChange={(value) => updateDimension("width", value)} />
                         <span className="text-lg opacity-45">↔</span>
-                        <DimensionInput prefix="H" value={dimensions.height} theme={theme} onChange={(value) => updateDimension("height", value)} />
+                        <DimensionInput prefix="H" value={dimensions.height} theme={theme} disabled={miniMaxH3 && !customResolution} onChange={(value) => updateDimension("height", value)} />
                     </div>
                     <div className="grid grid-cols-4 gap-2.5">
                         {ratioOptions.map((value) => {
@@ -112,7 +145,11 @@ export function isMiniMaxH3VideoConfig(config: Pick<AiConfig, "model" | "videoMo
 }
 
 export function videoResolutionLabel(value: string, config?: Pick<AiConfig, "model" | "videoModel">) {
-    return config && isMiniMaxH3VideoConfig(config) ? `${normalizeMiniMaxResolutionValue(value)} MP` : `${normalizeVideoResolutionValue(value)}p`;
+    if (config && isMiniMaxH3VideoConfig(config)) {
+        const normalized = normalizeMiniMaxResolutionValue(value);
+        return normalized === "custom" ? i18n.t("settingsPanels.video.customResolution") : `${normalized} MP`;
+    }
+    return `${normalizeVideoResolutionValue(value)}p`;
 }
 
 export function videoSizeLabel(value: string) {
@@ -139,7 +176,8 @@ export function normalizeVideoResolutionValue(value: string) {
 }
 
 export function normalizeMiniMaxResolutionValue(value: string) {
-    return value === "0.9" ? "0.9" : "0.4";
+    if (value === "custom") return "custom";
+    return megapixelPresets.includes(value) ? value : "0.4";
 }
 
 function OptionPill({ selected, disabled = false, theme, onClick, children }: { selected: boolean; disabled?: boolean; theme: CanvasTheme; onClick: () => void; children: ReactNode }) {
@@ -161,13 +199,21 @@ function SettingGroup({ title, color, children }: { title: string; color: string
     );
 }
 
-function DimensionInput({ prefix, value, theme, onChange }: { prefix: string; value: number; theme: CanvasTheme; onChange: (value: number | null) => void }) {
+function DimensionInput({ prefix, value, disabled = false, theme, onChange }: { prefix: string; value: number; disabled?: boolean; theme: CanvasTheme; onChange: (value: number | null) => void }) {
     return (
-        <label className="flex h-9 overflow-hidden rounded-xl text-sm" style={{ background: theme.node.fill, color: theme.node.text }}>
+        <label className="flex h-9 overflow-hidden rounded-xl text-sm" style={{ background: theme.node.fill, color: theme.node.text, opacity: disabled ? 0.45 : 1 }}>
             <span className="grid w-9 place-items-center" style={{ color: theme.node.muted }}>
                 {prefix}
             </span>
-            <input type="number" min={1} className="min-w-0 flex-1 bg-transparent px-2 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" value={value || ""} onChange={(event) => onChange(Number(event.target.value) || null)} onMouseDown={(event) => event.stopPropagation()} />
+            <input
+                type="number"
+                min={1}
+                disabled={disabled}
+                className="min-w-0 flex-1 bg-transparent px-2 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none disabled:cursor-not-allowed"
+                value={value || ""}
+                onChange={(event) => onChange(Number(event.target.value) || null)}
+                onMouseDown={(event) => event.stopPropagation()}
+            />
         </label>
     );
 }
@@ -212,6 +258,15 @@ function dimensionsForRatio(ratio: string, megapixels: number) {
     const width = Math.ceil(Math.sqrt(pixels * value) / 32) * 32;
     const height = Math.ceil(Math.sqrt(pixels / value) / 32) * 32;
     return { width, height };
+}
+
+function dimensionsForMegapixels(size: string, megapixels: number, fallbackMegapixels: number) {
+    const ratio = ratioValue(size);
+    if (ratio === "16:9") {
+        const exact = sixteenNineSizes[String(megapixels)];
+        if (exact) return exact;
+    }
+    return dimensionsForRatio(ratio, Number.isFinite(megapixels) && megapixels > 0 ? megapixels : fallbackMegapixels);
 }
 
 function readRatio(ratio: string) {
