@@ -1,5 +1,5 @@
-import { type ReactNode, useEffect } from "react";
-import { Select, Switch } from "antd";
+import { type ReactNode, useEffect, useState } from "react";
+import { Switch } from "antd";
 import { useTranslation } from "react-i18next";
 
 import { ImageSettingsTheme } from "@/components/image-settings-panel";
@@ -64,10 +64,18 @@ export function VideoSettingsPanel({ config, onConfigChange, theme, showTitle = 
         if (/^\d+x\d+$/i.test(config.size || "")) onConfigChange("size", ratioValue(normalizeVideoSizeValue(config.size)));
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [config.size, presetResolution]);
-    const updateDimension = (key: "width" | "height", value: number | null) => {
-        const next = Math.max(1, Math.floor(value || dimensions[key] || 720));
-        const width = key === "width" ? next : dimensions.width;
-        const height = key === "height" ? next : dimensions.height;
+    const [resolutionDraft, setResolutionDraft] = useState("");
+    useEffect(() => {
+        setResolutionDraft(`${dimensions.width}x${dimensions.height}`);
+    }, [dimensions.width, dimensions.height]);
+    const commitResolutionDraft = () => {
+        const match = resolutionDraft.match(/^\s*(\d+)\s*[x×*]\s*(\d+)\s*$/i);
+        if (!match) {
+            setResolutionDraft(`${dimensions.width}x${dimensions.height}`);
+            return;
+        }
+        const width = Math.max(1, Math.floor(Number(match[1])));
+        const height = Math.max(1, Math.floor(Number(match[2])));
         onConfigChange("size", `${width}x${height}`);
         if (miniMaxH3) onConfigChange("vquality", "custom");
     };
@@ -78,33 +86,43 @@ export function VideoSettingsPanel({ config, onConfigChange, theme, showTitle = 
                 {showTitle ? <div className="text-lg font-semibold">{t("settingsPanels.video.title")}</div> : null}
                 {miniMaxH3 ? (
                     <SettingGroup title={t("settingsPanels.video.megapixels")} color={theme.node.muted}>
-                        <Select
-                            size="small"
-                            className="w-full"
-                            value={megapixels}
-                            options={[
-                                ...miniMaxResolutionOptions.map((value) => {
-                                    const optionDimensions = dimensionsForMegapixels(size, Number(value), previewMegapixels);
-                                    return { value, label: `${value} MP · ${optionDimensions.width}×${optionDimensions.height}` };
-                                }),
-                                { value: "custom", label: t("settingsPanels.video.customResolution") },
-                            ]}
-                            onChange={(value) => {
-                                onConfigChange("vquality", value);
-                                if (value !== "custom" && /^\d+x\d+$/i.test(size)) onConfigChange("size", ratioValue(size));
-                            }}
-                        />
+                        <div className="flex items-center gap-2">
+                            <select
+                                className="h-9 min-w-0 flex-1 cursor-pointer rounded-xl border bg-transparent px-2 text-sm outline-none"
+                                style={{ borderColor: theme.node.stroke, color: theme.node.text }}
+                                value={megapixels}
+                                onChange={(event) => {
+                                    const value = event.target.value;
+                                    onConfigChange("vquality", value);
+                                    if (value !== "custom" && /^\d+x\d+$/i.test(size)) onConfigChange("size", ratioValue(size));
+                                }}
+                            >
+                                {miniMaxResolutionOptions.map((value) => (
+                                    <option key={value} value={value} style={{ background: "#1c1917", color: "#e7e5df" }}>
+                                        {value} MP
+                                    </option>
+                                ))}
+                                <option value="custom" style={{ background: "#1c1917", color: "#e7e5df" }}>
+                                    {t("settingsPanels.video.customResolution")}
+                                </option>
+                            </select>
+                            <input
+                                className="h-9 w-28 shrink-0 rounded-xl border bg-transparent px-2 text-center text-sm outline-none read-only:opacity-60"
+                                style={{ borderColor: theme.node.stroke, color: theme.node.text }}
+                                value={resolutionDraft}
+                                readOnly={!customResolution}
+                                onChange={(event) => setResolutionDraft(event.target.value)}
+                                onBlur={commitResolutionDraft}
+                                onKeyDown={(event) => {
+                                    if (event.key === "Enter") (event.target as HTMLInputElement).blur();
+                                }}
+                                onMouseDown={(event) => event.stopPropagation()}
+                            />
+                        </div>
                     </SettingGroup>
                 ) : null}
 
                 <SettingGroup title={t("settingsPanels.video.size")} color={theme.node.muted}>
-                    {!presetResolution ? (
-                        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2.5">
-                            <DimensionInput prefix="W" value={dimensions.width} theme={theme} onChange={(value) => updateDimension("width", value)} />
-                            <span className="text-lg opacity-45">↔</span>
-                            <DimensionInput prefix="H" value={dimensions.height} theme={theme} onChange={(value) => updateDimension("height", value)} />
-                        </div>
-                    ) : null}
                     <div className="grid grid-cols-4 gap-2.5">
                         {ratioOptions.map((value) => {
                             const optionDimensions = presetResolution ? dimensionsForMegapixels(value, Number(megapixels), previewMegapixels) : dimensionsForRatio(value, previewMegapixels);
@@ -211,25 +229,6 @@ function SettingGroup({ title, color, children }: { title: string; color: string
             </div>
             {children}
         </div>
-    );
-}
-
-function DimensionInput({ prefix, value, disabled = false, theme, onChange }: { prefix: string; value: number; disabled?: boolean; theme: CanvasTheme; onChange: (value: number | null) => void }) {
-    return (
-        <label className="flex h-9 overflow-hidden rounded-xl text-sm" style={{ background: theme.node.fill, color: theme.node.text, opacity: disabled ? 0.45 : 1 }}>
-            <span className="grid w-9 place-items-center" style={{ color: theme.node.muted }}>
-                {prefix}
-            </span>
-            <input
-                type="number"
-                min={1}
-                disabled={disabled}
-                className="min-w-0 flex-1 bg-transparent px-2 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none disabled:cursor-not-allowed"
-                value={value || ""}
-                onChange={(event) => onChange(Number(event.target.value) || null)}
-                onMouseDown={(event) => event.stopPropagation()}
-            />
-        </label>
     );
 }
 
