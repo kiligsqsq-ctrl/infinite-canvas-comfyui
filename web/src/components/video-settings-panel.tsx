@@ -1,4 +1,4 @@
-import { type ReactNode } from "react";
+import { type ReactNode, useEffect } from "react";
 import { Select, Switch } from "antd";
 import { useTranslation } from "react-i18next";
 
@@ -49,13 +49,21 @@ export function VideoSettingsPanel({ config, onConfigChange, theme, showTitle = 
     const seconds = config.videoSeconds || "5";
     const size = normalizeVideoSizeValue(config.size);
     const megapixels = normalizeMiniMaxResolutionValue(config.vquality);
+    const customResolution = megapixels === "custom";
+    const presetResolution = miniMaxH3 && !customResolution;
     const customSizeMatch = (config.size || "").match(/^(\d+)x(\d+)$/i);
     const customMegapixels = customSizeMatch ? (Number(customSizeMatch[1]) * Number(customSizeMatch[2])) / 1_000_000 : 0.4;
-    const previewMegapixels = !miniMaxH3 ? 0.9 : megapixels === "custom" ? Math.max(0.05, customMegapixels) : Number(megapixels);
-    const dimensions = readSizeDimensions(size, previewMegapixels);
-    const customResolution = megapixels === "custom";
+    const previewMegapixels = !miniMaxH3 ? 0.9 : customResolution ? Math.max(0.05, customMegapixels) : Number(megapixels);
+    // A selected megapixel preset always shows its own dimensions, even if the node still holds an old custom size.
+    const dimensions = presetResolution ? dimensionsForMegapixels(size, Number(megapixels), previewMegapixels) : readSizeDimensions(size, previewMegapixels);
     const generateAudio = boolConfig(config.videoGenerateAudio, true);
     const watermark = boolConfig(config.videoWatermark, false);
+    // Keep the stored ratio in sync: a megapixel preset cannot keep a free "WxH" size.
+    useEffect(() => {
+        if (!presetResolution) return;
+        if (/^\d+x\d+$/i.test(config.size || "")) onConfigChange("size", ratioValue(normalizeVideoSizeValue(config.size)));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [config.size, presetResolution]);
     const updateDimension = (key: "width" | "height", value: number | null) => {
         const next = Math.max(1, Math.floor(value || dimensions[key] || 720));
         const width = key === "width" ? next : dimensions.width;
@@ -90,14 +98,16 @@ export function VideoSettingsPanel({ config, onConfigChange, theme, showTitle = 
                 ) : null}
 
                 <SettingGroup title={t("settingsPanels.video.size")} color={theme.node.muted}>
-                    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2.5">
-                        <DimensionInput prefix="W" value={dimensions.width} theme={theme} disabled={miniMaxH3 && !customResolution} onChange={(value) => updateDimension("width", value)} />
-                        <span className="text-lg opacity-45">↔</span>
-                        <DimensionInput prefix="H" value={dimensions.height} theme={theme} disabled={miniMaxH3 && !customResolution} onChange={(value) => updateDimension("height", value)} />
-                    </div>
+                    {!presetResolution ? (
+                        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2.5">
+                            <DimensionInput prefix="W" value={dimensions.width} theme={theme} onChange={(value) => updateDimension("width", value)} />
+                            <span className="text-lg opacity-45">↔</span>
+                            <DimensionInput prefix="H" value={dimensions.height} theme={theme} onChange={(value) => updateDimension("height", value)} />
+                        </div>
+                    ) : null}
                     <div className="grid grid-cols-4 gap-2.5">
                         {ratioOptions.map((value) => {
-                            const optionDimensions = dimensionsForRatio(value, previewMegapixels);
+                            const optionDimensions = presetResolution ? dimensionsForMegapixels(value, Number(megapixels), previewMegapixels) : dimensionsForRatio(value, previewMegapixels);
                             return (
                                 <button
                                     key={value}

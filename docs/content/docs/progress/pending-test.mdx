@@ -5,6 +5,7 @@ description: Implemented changes that still need manual verification
 
 # Pending Tests
 
+- Video settings consistency: when a first-pass resolution preset is selected, the custom width/height inputs should be hidden (no conflicting old size) and the ratio buttons should follow the preset dimensions; the width/height inputs appear only in Custom mode.
 - First-pass resolution visibility: any ComfyUI video workflow (regardless of model name) should show the first-pass resolution dropdown in video settings, keep the custom width/height mutual exclusion, and convert the resolution to megapixels when generating.
 - First-pass resolution: the canvas video node should offer a first-pass resolution dropdown (14 presets from 0.2 to 2.0, each showing concrete dimensions) that is mutually exclusive with the custom width/height inputs; non-H3 models keep the custom width/height inputs; generation should pass either the preset or the derived megapixels to the ComfyUI workflow.
 - ComfyUI workflow type: uploading a video/audio workflow JSON should auto-detect and save its type instead of staying on image; the detection summary should list the node each mapping points to for verification; manually changing the type should warn that the workflow must be re-uploaded.
